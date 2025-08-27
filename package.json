@@ -1,0 +1,12 @@
+{
+  "name": "abc-qr",
+  "version": "1.0.0",
+  "main": "Server.js",
+  "type": "module",                   
+  "scripts": {
+    "start": "node Server.js"
+  },
+  "engines": { "node": ">=18" }
+}
+
+

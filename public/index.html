@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QR Attendance — Saamarthya Academy</title>
+
+<!-- ZXing QR scanner -->
+<script src="https://unpkg.com/@zxing/library@0.20.0"></script>
+
+<style>
+/* ====== Base / Tokens ====== */
+:root{
+  --bg:#f6f7fb; --surface:#ffffff; --ink:#1f2a44; --muted:#6b7280; --line:#e6ebf2;
+  --primary:#3b5bff; --primary-weak:#e8edff; --ok:#15803d; --warn:#b91c1c;
+
+  --radius-xl:16px; --radius:12px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+
+  /* fluid spacing + type */
+  --pad: clamp(14px, 2.2vw, 24px);
+  --gap: clamp(10px, 1.8vw, 18px);
+  --fs-base: clamp(14px, 1.2vw, 16px);
+  --fs-sm: clamp(12px, .95vw, 14px);
+  --fs-h1: clamp(18px, 2.2vw, 24px);
+  --fs-h2: clamp(16px, 1.8vw, 19px);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--font);font-size:var(--fs-base);line-height:1.5;
+}
+
+/* ====== Header ====== */
+header{
+  position:sticky;top:0;z-index:10;background:#fff;
+  border-bottom:1px solid var(--line);
+  backdrop-filter:saturate(180%) blur(6px);
+}
+.wrap{
+  max-width:1320px;
+  margin:0 auto;
+  padding: calc(var(--pad) - 2px) var(--pad);
+  width: min(1320px, 100%);
+}
+.header-bar{
+  display:flex;justify-content:space-between;align-items:center;gap:var(--gap);
+  flex-wrap:wrap; /* ✅ allow wrap on small screens */
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+h1{margin:0;font-size:var(--fs-h1);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.subtitle{color:var(--muted);font-size:var(--fs-sm)}
+
+/* ====== Buttons / Links ====== */
+a.btn{
+  display:inline-block;text-decoration:none;padding:10px 16px;border-radius:9999px;
+  font-weight:700;transition:all .2s;border:1px solid transparent;white-space:nowrap;
+}
+a.btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+a.btn.primary:hover{background:#2d47cc}
+
+button{
+  background:#fff;color:var(--ink);border:1px solid var(--line);
+  padding:10px 14px;border-radius:9999px;font-weight:700;cursor:pointer;transition:.15s;min-height:42px
+}
+button:disabled{opacity:.55;cursor:not-allowed}
+button.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+button.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+button.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
+button.warn{background:var(--warn);color:#fff;border-color:var(--warn)}
+.btn-hover-red:hover{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.12)}
+button.ghost.btn-hover-red:hover{background:rgba(239,68,68,.06)}
+.btn-sm{font-size:var(--fs-sm);padding:8px 12px;min-height:36px}
+.btn-danger-lg,.btn-accent-lg{
+  padding:12px 18px;border-radius:9999px;font-weight:800;min-height:46px
+}
+.btn-danger-lg{background:#ef4444;color:#fff;border:none}
+.btn-accent-lg{background:#1f7a1f;color:#fff;border:none}
+
+/* ====== Layout ====== */
+.grid{display:grid;gap:var(--gap);grid-template-columns:1.15fr .85fr}
+@media (max-width:1200px){ .grid{grid-template-columns:1fr} }
+
+/* ====== Cards / Sections ====== */
+.card{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius-xl);padding:clamp(14px, 2vw, 20px)
+}
+.card h2{margin:0 0 10px;font-size:var(--fs-h2)}
+
+/* ====== Scanner ====== */
+.scan-drop{
+  position:relative;width:100%;aspect-ratio:16/9;border:1px solid var(--line);
+  border-radius:14px;background:#f3f6fc;display:grid;place-items:center
+}
+.qr-placeholder{
+  width:clamp(96px,12vw,140px);height:clamp(96px,12vw,140px);
+  border-radius:999px;background:radial-gradient(100% 100% at 30% 20%,#7a8cff 0%,#ff6a6a 100%);
+  display:grid;place-items:center;color:#fff;font-size:clamp(32px,4vw,48px);font-weight:800
+}
+.scan-drop input[type=file].file-btn{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,62px);
+  background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer
+}
+.scan-active .qr-placeholder,.scan-active .file-btn{display:none}
+.scan-active #video{display:block}
+
+.controls{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px
+}
+
+/* ====== Filters ====== */
+.filterbar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;
+  flex-wrap:wrap;
+}
+.filterbar .left,.filterbar .right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.select,select,input[type=date]{
+  background:#fff;color:#1f2a44;border:1px solid var(--line);border-radius:9999px;
+  padding:9px 12px;min-height:42px;font-weight:600;max-width:100%
+}
+#filtersPanel{display:none;margin-top:10px}
+#filtersPanel .left{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* ====== Table ====== */
+.table-wrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+table{width:100%;border-collapse:collapse}
+thead th{
+  background:var(--primary-weak);color:#23325a;font-weight:700;border-bottom:1px solid var(--line);
+  padding:10px 12px;text-align:left;font-size:var(--fs-sm)
+}
+td{padding:10px 12px;border-bottom:1px solid var(--line)}
+tbody tr:nth-child(even){background:#fafbff}
+td.center{text-align:center}
+
+.chip{
+  display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;
+  border:1px solid var(--line);background:#f2f4f8;color:#475569
+}
+.chip.ok{background:#dff7ea;border-color:#bfead4;color:var(--ok)}
+.chip.warn{background:#ffecec;border-color:#ffc9c9;color:var(--warn)}
+
+/* ====== Dashboard actions (one line) ====== */
+.dash-actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  align-items:center;
+  flex-wrap:nowrap; /* ⬅ force one line */
+  margin-top:16px
+}
+
+/* ====== Responsive ====== */
+@media (max-width:768px){
+  .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="wrap header-bar">
+    <div class="brand">
+      <img src="LOGOOO.svg" height="50" width="50" alt="Saamarthya Academy Logo">
+      <div>
+        <h1> Saamarthya Academy</h1>
+        <div class="subtitle">Online Attendance System</div>
+      </div>
+    </div>
+    <nav>
+      <!-- If you renamed it, use qr-generator.html -->
+      <a href="qr-generator.html" class="btn primary">QR Generator</a>
+    </nav>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="wrap" style="margin-top:12px;">
+  <div class="grid">
+    <!-- LEFT: Scanner + Log -->
+    <section class="card">
+      <h2>Scan Student QR Code</h2>
+
+      <div id="scanTile" class="scan-drop">
+        <div class="qr-placeholder">🔲</div>
+        <br>
+        <input type="file" id="fileInput" accept="image/*" class="file-btn" />
+        <video id="video" playsinline style="display:none; width:100%; height:100%; border-radius:14px;"></video>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn" class="primary btn-sm btn-hover-red">Start Camera</button>
+        <button id="stopBtn"  class="ghost   btn-sm btn-hover-red" disabled>Stop Camera</button>
+        <label class="row" style="gap:6px; color:var(--muted);">
+          <input type="checkbox" id="beep" checked /> Beep + Voice
+        </label>
+      </div>
+
+      <div class="filterbar">
+        <div class="left">
+          <button id="toggleFilters" class="ghost btn-hover-red">Filters</button>
+        </div>
+        <div class="right">
+          <button id="downloadCsv" class="ok btn-hover-red">Download Attendance</button>
+        </div>
+      </div>
+
+      <div id="filtersPanel">
+        <div class="left">
+          <select id="cameraSelect" class="select" title="Camera"></select>
+          <select id="filterClass" class="select">
+            <option value="">All Classes</option>
+          </select>
+          <select id="filterStatus" class="select">
+            <option value="">All Status</option>
+            <option value="Present">Present</option>
+            <option value="Duplicate">Duplicate</option>
+          </select>
+          <input type="date" id="filterDateFrom" />
+          <input type="date" id="filterDateTo" />
+        </div>
+      </div>
+
+      <!-- Centered last-scan message -->
+      <div id="lastScanMsg" style="margin-top:6px; color:var(--muted); font-size:13px; text-align:center;"></div>
+
+      <div class="table-wrap" style="margin-top:10px;">
+        <table id="logTable" aria-label="Attendance Log">
+          <thead>
+            <tr>
+              <th>#</th><th>Student ID</th><th>Name</th><th>Class</th><th>Status</th><th>Date</th><th>Time</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot><tr id="noRows" style="display:none;"><td colspan="7" class="center" style="color:var(--muted)">No results</td></tr></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- RIGHT: Dashboard + Actions + History -->
+    <section class="card">
+      <h2>Dashboard Overview</h2>
+
+      <div class="table-wrap">
+        <table id="dashTable" aria-label="Dashboard by Class">
+          <thead>
+            <tr>
+              <th>Class</th><th>Total Students</th><th>Present Today</th><th>Absent Today</th>
+            </tr>
+          </thead>
+          <tbody id="dashBody"></tbody>
+        </table>
+      </div>
+
+      <div class="dash-actions">
+        <!-- Short, one-line buttons -->
+        <button id="clearAll" class="btn-danger-lg">Clear All</button>
+        <button id="clearToday" class="btn-danger-lg">Clear Today</button>
+        <button id="finalizeAndDownload" class="btn-accent-lg">Finalize Day</button>
+      </div>
+
+      <!-- Center the overall summary -->
+      <div class="subtitle" id="overallSummary" style="margin-top:8px; text-align:center;">Overall —</div>
+
+      <!-- History Section -->
+      <div id="historySection" style="margin-top:14px;">
+        <h2 style="font-size:var(--fs-h2); margin:10px 0 8px;">History (Recent Days)</h2>
+        <div class="table-wrap">
+          <table id="historyTable" aria-label="Attendance History">
+            <thead>
+              <tr>
+                <th>Date</th><th>Present</th><th>Absent</th><th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast" style="display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 14px; border-radius:999px; font-weight:700;"></div>
+
+<!-- 🎵 Custom beep hook: set src to your tone file (mp3/wav). If empty, oscillator fallback is used. -->
+<audio id="beepAudio" preload="auto" src=""></audio>
+
+<script>
+/* ===========================
+   API CONFIG (edit if needed)
+=========================== */
+const API_BASE = "http://localhost:3000";  // change to your server/IP if needed
+const API_KEY  = "supersecret123";         // same as Server/.env API_KEY
+
+/* ===========================
+   Students DB (OBJECT)
+=========================== */
+const students = {
+  "SAH25009": { name:"Aditya Raj", class:"8",  phone:"6206971640", email:"parent1@gmail.com" },
+  "SAH25010": { name:"Shreyansh Kumar", class:"8",  phone:"8340135190", email:"anurandhakumari1986@gmail.com" },
+  "SAH25011": { name:"Aayush Kant", class:"8",  phone:"7321852484", email:"Shwetarani62621@gmail.com" },
+  "SAH25201": { name:"Aarav Kumar", class:"8",  phone:"6204020655", email:"Shyamroaster@gmail.com" },
+
+  "SAJ25013": { name:"Kritika Arya", class:"10", phone:"7870454422", email:"nitya4world@gmail.com" },
+  "SAJ25012": { name:"Shweta Kumari", class:"10", phone:"8873238428", email:"ajaybhagat1880@gmail.com" },
+  "SAJ25011": { name:"Divyanshu Kumar", class:"10", phone:"8789580780", email:"divyanshukumar2323k@gmail.com" },
+  "SAJ25016": { name:"Arnav", class:"10", phone:"9934490207", email:"rajnishbharti84@gmail.com" },
+  "SAJ25015": { name:"Dhruv Ranjan", class:"10", phone:"7979709595", email:"dhruvranjan888@gmail.com" },
+  "SAJ25014": { name:"Sonali Kumari", class:"10", phone:"8862991979", email:"dollydevi0108@gmail.com" },
+
+  "SAN25008": { name:"Ashutosh Raj", class:"9",  phone:"9905606885", email:"ajaybhagat1880@gmail.com" },
+  "SAN25016": { name:"Satyam Kumar", class:"9",  phone:"9472094162", email:"raybishwambhar851@gmail.com" },
+  "SAN25012": { name:"Krish Raj", class:"9",  phone:"9304998868", email:"ajeet74844@gmail.com" },
+  "SAN25011": { name:"Manvi", class:"9",  phone:"8989972932", email:"Mukeshkumar180075@gmail.com" },
+  "SAN25015": { name:"Bharat Kumar Adarsh", class:"9", phone:"9122609590", email:"parent14@gmail.com" },
+  "SAN25010": { name:"Tripti Kumari", class:"9", phone:"8789832449", email:"niketakumari0416@gmail.com" },
+  "SAN25013": { name:"Anamika", class:"9", phone:"9508400448", email:"Sinha2nitesh@gmail.com" },
+  "SAN25014": { name:"Saumya Chauhan", class:"9", phone:"6205053029", email:"Hmvishwajeetkumar2002@gmail.com" },
+  "SAN25017": { name:"Kumari Kamya", class:"9", phone:"6204020655", email:"Shyam123456006@gmail.com" },
+
+  "SAE25045": { name:"Khushi Kumari", class:"11", phone:"8877949381", email:"Hmvishwajeetkumar2002@gmail.com" },
+  "SAE25020": { name:"Saloni", class:"11", phone:"6204020655", email:"anjalikumari@gmail.com" },
+  "SAE25037": { name:"Janvi Srivastava", class:"11", phone:"9973320400", email:"anjali.kumari@gmail.com" },
+  "SAE25039": { name:"Samiksha Srivastava", class:"11", phone:"765462851",  email:"anjali.kumari@gmail.com" },
+  "SAE25038": { name:"Saumya Raj", class:"11", phone:"9570419189", email:"anjali.kumari@gmail.com" },
+  "SAE25022": { name:"Naina Kumari", class:"11", phone:"9234764044", email:"anjali.kumari@gmail.com" },
+  "SAE25044": { name:"Vishal Athak", class:"11", phone:"7547870991", email:"anjali.kumari@gmail.com" },
+  "SAE25040": { name:"Sunny Kumar", class:"11", phone:"7321987684", email:"anjali.kumari@gmail.com" },
+  "SAE25030": { name:"Tanish Kumar", class:"11", phone:"9525201135", email:"anjali.kumari@gmail.com" },
+  "SAE25026": { name:"Vijay Kumar", class:"11", phone:"7352103550", email:"anjali.kumari@gmail.com" },
+  "SAE25028": { name:"Rishi Raj", class:"11", phone:"8757497670", email:"anjali.kumari@gmail.com" },
+  "SAE25031": { name:"Aashmit Kumar", class:"11", phone:"6203666094", email:"anjali.kumari@gmail.com" },
+  "SAE25029": { name:"Shivam Kumar", class:"11", phone:"9113310468", email:"anjali.kumari@gmail.com" },
+  "SAE25019": { name:"Md. Isatehsanullah", class:"11", phone:"6299355373", email:"anjali.kumari@gmail.com" },
+  "SAE25036": { name:"Md. Mojahid Hussain", class:"11", phone:"6203245651", email:"anjali.kumari@gmail.com" },
+  "SAE25046": { name:"Suhani Kumari", class:"11", phone:"8638261845", email:"anjali.kumari@gmail.com" },
+  "SAE25025": { name:"Kumari Shreya", class:"11", phone:"9835475671", email:"anjali.kumari@gmail.com" },
+  "SAE25048": { name:"Durga Kumari", class:"11", phone:"9934727967", email:"anjali.kumari@gmail.com" }
+};
+
+/* Convert object → array for UI logic */
+const studentArr = Object.entries(students).map(([id, s]) => ({ id, ...s }));
+
+/* ===========================
+   Storage
+=========================== */
+const LS_KEY = "sa_qr_attendance_v1";
+function loadAttendance(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch{ return []; } }
+function saveAttendance(rows){ localStorage.setItem(LS_KEY, JSON.stringify(rows)); }
+
+/* ===========================
+   Utils
+=========================== */
+const $ = sel => document.querySelector(sel);
+function todayStr(d=new Date()){ return d.toISOString().slice(0,10); }
+function showToast(msg, bg){
+  const t=$("#toast");
+  const oldBg = t.style.background;
+  if(bg) t.style.background = bg;
+  t.textContent=msg; t.style.display="block";
+  setTimeout(()=>{ t.style.display="none"; t.style.background = oldBg || "#111827"; },1500);
+}
+
+/* 🎵 Customizable beep: plays #beepAudio if src is set; else uses oscillator */
+const beepEl = document.getElementById("beepAudio");
+function playBeep(){
+  try{
+    if(beepEl && beepEl.src && beepEl.src.trim() !== ""){
+      beepEl.currentTime = 0;
+      beepEl.play().catch(()=>{});
+      return;
+    }
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination); o.type="square"; o.frequency.value=880;
+    o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.25);
+    setTimeout(()=>{o.stop();ctx.close();},260);
+  }catch{}
+}
+function speakText(text){ try{ const u=new SpeechSynthesisUtterance(text); u.lang="en-IN"; speechSynthesis.speak(u); }catch{} }
+
+/* ===========================
+   State
+=========================== */
+let logRows = loadAttendance();
+const studentMap = new Map(studentArr.map(s => [s.id, s]));
+const classes = [...new Set(studentArr.map(s=>s.class))].sort((a,b)=>+a-+b);
+
+/* ===========================
+   DOM refs
+=========================== */
+const cameraSelect = $("#cameraSelect");
+const filterClass = $("#filterClass");
+const historyBody = $("#historyBody");
+
+/* Populate class filter */
+classes.forEach(c=>{ const o=document.createElement("option"); o.value=c; o.textContent=`Class ${c}`; filterClass.appendChild(o); });
+
+/* ===========================
+   Dashboard
+=========================== */
+function renderDashboard(){
+  const body = $("#dashBody"); body.innerHTML = "";
+  const today = todayStr();
+  const presentSet = new Set(logRows.filter(r=>r.date===today && r.status==="Present").map(r=>r.id));
+
+  const totals = new Map(classes.map(c=>[c,{total:0,present:0}]));
+  studentArr.forEach(s=>{ const t=totals.get(s.class); t.total++; if(presentSet.has(s.id)) t.present++; });
+
+  let total=0, present=0;
+  classes.forEach(c=>{
+    const {total:tt, present:pp} = totals.get(c);
+    const aa = tt - pp;
+    total += tt; present += pp;
+    const tr=document.createElement("tr");
+    tr.innerHTML = `<td>Class ${c}</td><td>${tt}</td><td>${pp}</td><td>${aa}</td>`;
+    body.appendChild(tr);
+  });
+
+  const absent = total - present;
+  $("#overallSummary").textContent = `Overall — Total: ${total} | Present: ${present} | Absent: ${absent}`;
+}
+
+/* ===========================
+   History (Recent Dates)
+=========================== */
+function renderHistory(limit = 10){
+  historyBody.innerHTML = "";
+
+  // Group by date
+  const byDate = logRows.reduce((acc, r) => {
+    acc[r.date] = acc[r.date] || { present:0, absent:0, total:0 };
+    if (r.status === "Present") acc[r.date].present++;
+    if (r.status === "Absent") acc[r.date].absent++;
+    acc[r.date].total++;
+    return acc;
+  }, {});
+
+  const dates = Object.keys(byDate).sort((a,b)=> b.localeCompare(a)).slice(0, limit);
+  if (!dates.length){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="4" class="center" style="color:var(--muted)">No history found</td>`;
+    historyBody.appendChild(tr);
+    return;
+  }
+
+  dates.forEach(d=>{
+    const rec = byDate[d];
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${d}</td><td>${rec.present}</td><td>${rec.absent}</td><td>${rec.total}</td>`;
+    historyBody.appendChild(tr);
+  });
+}
+
+/* ===========================
+   Table + Filters
+=========================== */
+function getFilters(){ return {
+  cls: filterClass.value, status: $("#filterStatus").value,
+  from: $("#filterDateFrom").value, to: $("#filterDateTo").value
+};}
+function passFilters(r,f){
+  if(f.cls && r.class !== f.cls) return false;
+  if(f.status && r.status !== f.status) return false;
+  if(f.from && r.date < f.from) return false;
+  if(f.to && r.date > f.to) return false;
+  return true;
+}
+function renderTable(){
+  const tb = $("#logTable tbody");
+  const no = $("#noRows");
+  tb.innerHTML = "";
+  const f = getFilters();
+  const rows = logRows.filter(r=>passFilters(r,f));
+  no.style.display = rows.length ? "none" : "table-row";
+  rows.forEach((r,i)=>{
+    const tr=document.createElement("tr");
+    const chipClass = r.status==="Present" ? "chip ok" : "chip warn";
+    tr.innerHTML = `
+      <td>${i+1}</td><td>${r.id}</td><td>${r.name}</td>
+      <td>${r.class}</td><td><span class="${chipClass}">${r.status}</span></td>
+      <td>${r.date}</td><td>${r.time}</td>`;
+    tb.appendChild(tr);
+  });
+}
+function refreshUI(){ renderDashboard(); renderTable(); renderHistory(); }
+
+/* ===========================
+   Backend notify (email parents)
+=========================== */
+async function notifyParentEmail({ id, name, klass, email, when = new Date() }) {
+  try {
+    const res = await fetch(`${API_BASE}/api/send-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY
+      },
+      body: JSON.stringify({
+        studentId: id,
+        studentName: name,
+        parentEmail: email,
+        class: klass,
+        timestamp: new Date(when).toISOString()
+      })
+    });
+    const data = await res.json();
+    if (!data.ok && !data.dedup) console.warn("Email not sent:", data);
+  } catch (e) { console.warn("Notify failed", e); }
+}
+
+/* ===========================
+   Attendance Logic
+=========================== */
+function alreadyMarkedToday(id){
+  const t=todayStr(); return logRows.some(r=>r.id===id && r.date===t && r.status==="Present");
+}
+function appendLogEntry(entry){ logRows.unshift(entry); saveAttendance(logRows); refreshUI(); }
+
+function markAttendanceFromId(id){
+  const person = studentMap.get(id);
+  const now = new Date();
+  const entry = { id, name: person?person.name:"(Unknown)", class: person?person.class:"-", date: todayStr(now), time: now.toLocaleTimeString(), status:"Present" };
+
+  if(!person){
+    // 🚫 Unknown scan: no row; red toast + voice
+    showToast("Unknown QR / Student not found", "#b91c1c");
+    if($("#beep").checked) playBeep();
+    speakText("Unknown QR code scanned");
+    $("#lastScanMsg").innerHTML = `<span style="color:#f87171; font-weight:800;">Unknown QR scanned</span>`;
+    return;
+  }
+
+  if(alreadyMarkedToday(id)){
+    // ❌ Duplicate: no row; red toast + centered GREEN bold message (as requested)
+    showToast(`❌ Already Scanned: ${person.name} (Class ${person.class})`, "#b91c1c");
+    $("#lastScanMsg").innerHTML =
+      `<span style="color:#16a34a; font-weight:800;">Already Scanned: ${person.name} (Class ${person.class})</span>`;
+    if($("#beep").checked) playBeep();
+    speakText(`Already scanned ${person.name}`);
+    return;
+  }
+
+  // ✅ Normal Present case
+  appendLogEntry(entry);
+  $("#lastScanMsg").innerHTML =
+    `<span style="color:#34d399; font-weight:800;">Marked Present: ${person.name} (Class ${person.class})</span>`;
+  if($("#beep").checked) playBeep();
+  speakText(`${person.name} Present`);
+
+  // 🔔 notify parent
+  notifyParentEmail({ id, name: person.name, klass: person.class, email: person.email, when: now });
+}
+
+/* ===========================
+   CSV Export (filtered)
+=========================== */
+function downloadCSV(){
+  const f = getFilters();
+  const rows = logRows.filter(r=>passFilters(r,f));
+  const header = ["#", "ID", "Name", "Class", "Status", "Date", "Time"];
+  const csv = [header.join(",")].concat(
+    rows.map((r,i)=>[i+1,r.id,r.name,r.class,r.status,r.date,r.time]
+      .map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")))
+    .join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}); 
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download=`attendance_${todayStr()}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+/* ===========================
+   Clear Attendance (Today / All)
+=========================== */
+function clearToday(){
+  const t=todayStr();
+  logRows = logRows.filter(r=>r.date!==t);
+  saveAttendance(logRows);
+  refreshUI();
+  showToast("Cleared today’s attendance");
+}
+
+function clearAll(){
+  if(!confirm("This will permanently clear ALL attendance logs. Continue?")) return;
+  logRows = [];
+  saveAttendance(logRows);
+  refreshUI();
+  showToast("All attendance cleared");
+}
+
+/* ===========================
+   FINALIZE DAY + DOWNLOAD FULL LIST
+   - Marks unscanned students as Absent
+   - Downloads full CSV
+   - Sends Absent emails (batch) via /api/send-absent-emails
+=========================== */
+async function finalizeDayAndDownload(){
+  const t = todayStr();
+
+  // Ensure one row per student for today
+  studentArr.forEach(s=>{
+    const any = logRows.find(r=>r.id===s.id && r.date===t);
+    if(!any){
+      logRows.unshift({ id:s.id, name:s.name, class:s.class, status:"Absent", date:t, time:"-" });
+    }
+  });
+
+  saveAttendance(logRows);
+  refreshUI();
+  showToast("Day finalized. Unscanned marked Absent.");
+
+  // Build full CSV (all students for today)
+  const header = ["#", "ID", "Name", "Class", "Status", "Date", "Time"];
+  const rowsForToday = studentArr.map((s, idx)=>{
+    const row = logRows.find(r=>r.id===s.id && r.date===t);
+    return [idx+1, s.id, s.name, s.class, row?.status || "Absent", row?.date || t, row?.time || "-"];
+  });
+  const csv = [header.join(",")]
+    .concat(rowsForToday.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")))
+    .join("\n");
+
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}); 
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download=`attendance_FINAL_${t}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+
+  // 🔔 Send ABSENT alerts (batch) after finalize
+  try{
+    const absentRecords = studentArr
+      .filter(s => {
+        const row = logRows.find(r => r.id===s.id && r.date===t);
+        return !row || row.status !== "Present";
+      })
+      .map(s => ({
+        studentId: s.id,
+        studentName: s.name,
+        parentEmail: s.email,
+        dateISO: t
+      }));
+
+    if(absentRecords.length){
+      const res = await fetch(`${API_BASE}/api/send-absent-emails`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ records: absentRecords })
+      });
+      const data = await res.json();
+      console.log("Absent alerts result:", data);
+      showToast(`Absent alerts sent: ${data.sent || 0}/${absentRecords.length}`);
+    } else {
+      console.log("No absent alerts to send.");
+    }
+  }catch(e){
+    console.warn("Absent alerts failed:", e);
+  }
+}
+
+/* ===========================
+   ZXing Scanner (camera) with stronger hints
+=========================== */
+let codeReader=null; let currentDeviceId=null;
+async function listCameras(){
+  const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+  cameraSelect.innerHTML="";
+  devices.forEach((d,i)=>{ const opt=document.createElement("option"); opt.value=d.deviceId; opt.textContent=d.label||`Camera ${i+1}`; cameraSelect.appendChild(opt); });
+  if(devices[0]) cameraSelect.value=devices[0].deviceId;
+}
+async function startScanner(){
+  if(codeReader){ await stopScanner(); }
+
+  // Hints: prefer QR + try harder
+  const hints = new Map();
+  if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+  }
+  codeReader = new ZXing.BrowserMultiFormatReader(hints);
+
+  currentDeviceId = cameraSelect.value || undefined;
+  $("#startBtn").disabled=true; 
+  $("#stopBtn").disabled=false;
+  try{
+    await codeReader.decodeFromVideoDevice(currentDeviceId,"video",(res,err)=>{
+      if(res && res.text){ markAttendanceFromId(res.text.trim()); }
+    });
+    setScanActive(true);
+    showToast("Camera started");
+  }catch(e){
+    console.error(e); showToast("Could not start camera");
+    $("#startBtn").disabled=false; 
+    $("#stopBtn").disabled=true;
+    setScanActive(false);
+  }
+}
+async function stopScanner(){
+  if(codeReader){ await codeReader.reset(); codeReader=null; }
+  $("#startBtn").disabled=false; 
+  $("#stopBtn").disabled=true;
+  setScanActive(false);
+  showToast("Camera stopped");
+}
+
+/* ===========================
+   Scan-from-Image
+=========================== */
+const fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  try {
+    const qrReader = new ZXing.BrowserQRCodeReader();
+    // TRY_HARDER for still images too
+    const hints = new Map();
+    if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+      qrReader.defaultOptions = { hints };
+    }
+    const result = await qrReader.decodeFromImageUrl(url);
+    if (result && result.text) { markAttendanceFromId(result.text.trim()); showToast("Scanned from image"); }
+    else { showToast("No QR found in image", "#b91c1c"); }
+  } catch (err) {
+    console.error(err); showToast("Could not read QR from image", "#b91c1c");
+  } finally {
+    fileInput.value = ""; URL.revokeObjectURL(url);
+  }
+});
+
+/* ===========================
+   Filters toggle & UI helpers
+=========================== */
+document.getElementById("toggleFilters").addEventListener("click", ()=>{
+  const p = document.getElementById("filtersPanel");
+  p.style.display = p.style.display === "block" ? "none" : "block";
+});
+
+const scanTile = document.getElementById("scanTile");
+function setScanActive(active){
+  const video = document.getElementById("video");
+  if(active){ scanTile.classList.add("scan-active"); video.style.display="block"; }
+  else{ scanTile.classList.remove("scan-active"); video.style.display="none"; }
+}
+
+/* ===========================
+   Buttons
+=========================== */
+document.getElementById("startBtn").addEventListener("click", startScanner);
+document.getElementById("stopBtn").addEventListener("click", stopScanner);
+document.getElementById("downloadCsv").addEventListener("click", downloadCSV);
+document.getElementById("clearToday").addEventListener("click", clearToday);
+document.getElementById("clearAll").addEventListener("click", clearAll);
+document.getElementById("finalizeAndDownload").addEventListener("click", finalizeDayAndDownload);
+
+/* Filters re-render */
+["filterClass","filterStatus","filterDateFrom","filterDateTo"].forEach(id =>
+  document.getElementById(id).addEventListener("input", renderTable)
+);
+
+/* Camera hot-switch */
+cameraSelect.addEventListener("change", ()=>{ if(codeReader){ startScanner(); } });
+
+/* ===========================
+   Auto Reset Daily
+   - If date changed since last run, ensure a fresh day and update marker
+=========================== */
+function autoResetDaily(){
+  const today = todayStr();
+  const last = localStorage.getItem("lastDate");
+  if(last !== today){
+    // Remove any stale rows marked for "today" (if the tab was left open & prefilled)
+    logRows = logRows.filter(r => r.date !== today);
+    saveAttendance(logRows);
+    localStorage.setItem("lastDate", today);
+  }
+}
+
+/* ===========================
+   Init
+=========================== */
+(async function init(){
+  autoResetDaily();        // ✅ Auto Reset Daily
+  refreshUI();             // Render dashboard, table, and history
+  try{ await listCameras(); } catch{}
+})();
+</script>
+</body>
+</html>
