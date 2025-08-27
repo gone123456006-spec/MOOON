@@ -16,6 +16,8 @@ const PDFDocument = require("pdfkit");
 require("dotenv").config();
 
 const app = express();
+app.use(express.static(path.join(__dirname, "public"))); // serves public/index.html
+
 
 /* ========== Config (.env) ========== */
 const PORT        = process.env.PORT || 3000;

@@ -293,8 +293,12 @@ td.center{text-align:center}
 /* ===========================
    API CONFIG (edit if needed)
 =========================== */
-const API_BASE = "http://localhost:3000";  // change to your server/IP if needed
-const API_KEY  = "supersecret123";         // same as Server/.env API_KEY
+// Because this HTML is served by the SAME Express server on Render,
+// use same-origin calls (works locally and on Render)
+const API_BASE = "";   // or: const API_BASE = window.location.origin;
+// If you prefer explicit URL, you can use:
+// const API_BASE = "https://abc-qr.onrender.com";
+
 
 /* ===========================
    Students DB (OBJECT)
@@ -496,10 +500,7 @@ async function notifyParentEmail({ id, name, klass, email, when = new Date() }) 
   try {
     const res = await fetch(`${API_BASE}/api/send-email`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": API_KEY
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         studentId: id,
         studentName: name,
@@ -512,6 +513,7 @@ async function notifyParentEmail({ id, name, klass, email, when = new Date() }) 
     if (!data.ok && !data.dedup) console.warn("Email not sent:", data);
   } catch (e) { console.warn("Notify failed", e); }
 }
+
 
 /* ===========================
    Attendance Logic
@@ -777,6 +779,7 @@ function autoResetDaily(){
     localStorage.setItem("lastDate", today);
   }
 }
+
 
 /* ===========================
    Init
