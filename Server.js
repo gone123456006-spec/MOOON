@@ -16,7 +16,7 @@ const PDFDocument = require("pdfkit");
 require("dotenv").config();
 
 const app = express();
-app.use(express.static(path.join(__dirname, "public"))); // serves public/index.html
+app.use(express.static(path.join(__dirname, "public")));
 
 
 /* ========== Config (.env) ========== */
@@ -106,7 +106,7 @@ This is to inform you that ${studentName} (ID: ${studentId}) was marked ABSENT a
 
 Date: ${dayStr}
 
-If this is unexpected, please contact the school administration.
+If this is unexpected, please contact the Institute administration.
 
 Best regards,
 Saamarthya Academy`;
