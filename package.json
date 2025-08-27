@@ -1,8 +1,7 @@
 {
   "name": "abc-qr",
   "version": "1.0.0",
-  "main": "Server.js",
-  "type": "module",                   
+  "main": "Server.js",               
   "scripts": {
     "start": "node Server.js"
   },
