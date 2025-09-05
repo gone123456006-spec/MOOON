@@ -31,103 +31,18 @@ fs.mkdirSync(REPORT_DIR, { recursive: true });
 
 /* ========== Middleware ========== */
 app.use(cors({ origin: CORS_ORIGIN === "*" ? true : CORS_ORIGIN }));
-
-// Security headers
-app.use((req, res, next) => {
-  // Prevent XSS attacks
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
-  // Content Security Policy
-  res.setHeader('Content-Security-Policy', 
-    "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data: blob:; " +
-    "font-src 'self'; " +
-    "connect-src 'self'; " +
-    "media-src 'self' blob:;"
-  );
-  
-  next();
-});
-
-// Rate limiting middleware
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = 60000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 20;
-
-function rateLimit(req, res, next) {
-  const clientId = req.ip || req.connection.remoteAddress;
-  const now = Date.now();
-  
-  if (!rateLimitMap.has(clientId)) {
-    rateLimitMap.set(clientId, []);
-  }
-  
-  const requests = rateLimitMap.get(clientId);
-  const validRequests = requests.filter(time => now - time < RATE_LIMIT_WINDOW);
-  
-  if (validRequests.length >= MAX_REQUESTS_PER_WINDOW) {
-    return res.status(429).json({ 
-      ok: false, 
-      message: "Too many requests. Please try again later." 
-    });
-  }
-  
-  validRequests.push(now);
-  rateLimitMap.set(clientId, validRequests);
-  next();
-}
-
-// Apply rate limiting to API routes
-app.use('/api', rateLimit);
-
 app.use(express.json({ limit: "1mb" }));
 
 /* ========== Utilities ========== */
-const isEmail = (s = "") => {
-  if (!s || typeof s !== 'string') return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
-};
-
-const isValidStudentId = (id = "") => {
-  if (!id || typeof id !== 'string') return false;
-  const trimmed = id.trim().toUpperCase();
-  return trimmed.length >= 3 && /^[A-Z0-9]+$/.test(trimmed);
-};
-
-const sanitizeInput = (input) => {
-  if (typeof input !== 'string') return '';
-  return input.trim().replace(/[<>\"'&]/g, '');
-};
-
-function formatIST(isoOrDate = new Date()) {
-  try {
-    const d = new Date(isoOrDate);
-    if (isNaN(d.getTime())) {
-      throw new Error('Invalid date');
-    }
-    return new Intl.DateTimeFormat("en-IN", {
-      dateStyle: "full",
-      timeStyle: "short",
-      timeZone: "Asia/Kolkata"
-    }).format(d);
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-  }
+const isEmail = (s="") => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+function formatIST(isoOrDate = new Date()){
+  const d = new Date(isoOrDate);
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "full",
+    timeStyle: "short",
+    timeZone: "Asia/Kolkata"
+  }).format(d);
 }
-
-// Enhanced logging
-const logger = {
-  info: (msg, data = null) => console.log(`ℹ️  ${msg}`, data ? JSON.stringify(data, null, 2) : ''),
-  warn: (msg, data = null) => console.warn(`⚠️  ${msg}`, data ? JSON.stringify(data, null, 2) : ''),
-  error: (msg, error = null) => console.error(`❌ ${msg}`, error ? error.message || error : ''),
-  success: (msg, data = null) => console.log(`✅ ${msg}`, data ? JSON.stringify(data, null, 2) : '')
-};
 
 /* ========== Mailer ========== */
 let transporter = null;
@@ -221,116 +136,42 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, dryRun: DRY_RUN, time: new Date().toISOString() });
 });
 
-// Enhanced email sending with comprehensive validation
+// No API key check — just send
 app.post("/api/send-email", async (req, res) => {
   try {
     const { studentId, studentName, parentEmail, timestamp } = req.body || {};
-    
-    // Comprehensive validation
     if (!studentId || !studentName || !parentEmail) {
-      logger.warn("Missing required fields", { studentId: !!studentId, studentName: !!studentName, parentEmail: !!parentEmail });
-      return res.status(400).json({ 
-        ok: false, 
-        message: "Missing required fields: studentId, studentName, parentEmail" 
-      });
+      return res.status(400).json({ ok: false, message: "Missing fields" });
     }
-    
-    // Validate student ID format
-    if (!isValidStudentId(studentId)) {
-      logger.warn("Invalid student ID format", { studentId });
-      return res.status(400).json({ 
-        ok: false, 
-        message: "Invalid student ID format" 
-      });
-    }
-    
-    // Validate email format
     if (!isEmail(parentEmail)) {
-      logger.warn("Invalid email format", { parentEmail });
-      return res.status(400).json({ 
-        ok: false, 
-        message: "Invalid email format" 
-      });
-    }
-    
-    // Sanitize inputs
-    const sanitizedStudentId = sanitizeInput(studentId).toUpperCase();
-    const sanitizedStudentName = sanitizeInput(studentName);
-    const sanitizedParentEmail = parentEmail.trim().toLowerCase();
-    
-    // Validate timestamp if provided
-    let when;
-    if (timestamp) {
-      when = new Date(timestamp);
-      if (isNaN(when.getTime())) {
-        logger.warn("Invalid timestamp provided", { timestamp });
-        when = new Date();
-      }
-    } else {
-      when = new Date();
+      return res.status(400).json({ ok: false, message: "Invalid parentEmail" });
     }
 
+    const when = timestamp ? new Date(timestamp) : new Date();
     const { subject, text, html } = buildAttendanceEmail({
-      studentId: sanitizedStudentId, 
-      studentName: sanitizedStudentName, 
-      whenISO: when.toISOString()
+      studentId, studentName, whenISO: when.toISOString()
     });
 
     let emailSent = false;
-    let emailInfo = null;
-    
     if (DRY_RUN || !transporter) {
-      logger.info("DRY_RUN: Would send email", { 
-        to: sanitizedParentEmail, 
-        subject, 
-        studentId: sanitizedStudentId 
-      });
+      console.log("📧 [DRY_RUN] Would send to:", parentEmail, "|", subject);
       emailSent = true;
     } else {
-      try {
-        emailInfo = await transporter.sendMail({
-          from: `"Saamarthya Academy" <${SMTP_USER}>`,
-          to: sanitizedParentEmail,
-          subject,
-          text,
-          html,
-          // Add headers for better deliverability
-          headers: {
-            'X-Mailer': 'Saamarthya Academy Attendance System',
-            'X-Priority': '3'
-          }
-        });
-        
-        logger.success("Email sent successfully", { 
-          messageId: emailInfo.messageId, 
-          to: sanitizedParentEmail,
-          studentId: sanitizedStudentId 
-        });
-        emailSent = true;
-      } catch (emailError) {
-        logger.error("Failed to send email", emailError);
-        return res.status(500).json({ 
-          ok: false, 
-          message: "Failed to send email",
-          error: emailError.message 
-        });
-      }
+      const info = await transporter.sendMail({
+        from: `"Saamarthya Academy" <${SMTP_USER}>`,
+        to: parentEmail,
+        subject,
+        text,
+        html,
+      });
+      console.log("✅ Email sent:", info.messageId || info.response);
+      emailSent = true;
     }
 
-    res.json({ 
-      ok: true, 
-      emailSent,
-      messageId: emailInfo?.messageId,
-      timestamp: when.toISOString()
-    });
-    
+    res.json({ ok: true, emailSent });
   } catch (err) {
-    logger.error("Unexpected error in /api/send-email", err);
-    res.status(500).json({ 
-      ok: false, 
-      message: "Internal server error",
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
+    console.error("❌ /api/send-email:", err?.message || err);
+    res.status(500).json({ ok: false, message: "Internal error" });
   }
 });
 
