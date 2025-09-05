@@ -113,32 +113,206 @@
 
   <script>
     let generatedCanvas = null;
+    let currentStudentId = null;
 
+    // Input validation
+    function validateStudentId(id) {
+      if (!id || typeof id !== 'string') return false;
+      const trimmed = id.trim().toUpperCase();
+      return trimmed.length >= 3 && /^[A-Z0-9]+$/i.test(trimmed);
+    }
+
+    // Enhanced QR generation with validation and error handling
     function generateQR() {
-      let id = document.getElementById("student-id").value.trim();
-      if (id === "") return alert("⚠️ Please enter a Student ID");
-      
-      document.getElementById("qrcode").innerHTML = "";
-      generatedCanvas = document.createElement('canvas');
+      try {
+        const idInput = document.getElementById("student-id");
+        const qrContainer = document.getElementById("qrcode");
+        const downloadBtn = document.getElementById("downloadBtn");
+        
+        if (!idInput || !qrContainer || !downloadBtn) {
+          throw new Error("Required DOM elements not found");
+        }
 
-      QRCode.toCanvas(generatedCanvas, id, {
-        errorCorrectionLevel: 'H',
-        width: 400,   // HD Quality
-        margin: 2
-      }, function (err) {
-        if (err) throw err;
-        document.getElementById("qrcode").appendChild(generatedCanvas);
-        document.getElementById("downloadBtn").style.display = "inline-block";
-      });
+        let id = idInput.value.trim().toUpperCase();
+        
+        // Enhanced validation
+        if (!id) {
+          showMessage("⚠️ Please enter a Student ID", "warning");
+          idInput.focus();
+          return;
+        }
+        
+        if (!validateStudentId(id)) {
+          showMessage("⚠️ Invalid Student ID format. Use only letters and numbers (minimum 3 characters)", "error");
+          idInput.focus();
+          return;
+        }
+        
+        // Check if ID exists in the student database (if available)
+        if (typeof students !== 'undefined' && !students[id]) {
+          const confirmed = confirm(`Student ID "${id}" not found in database. Generate QR anyway?`);
+          if (!confirmed) return;
+        }
+
+        // Clear previous QR code
+        qrContainer.innerHTML = "";
+        downloadBtn.style.display = "none";
+        
+        // Show loading state
+        qrContainer.innerHTML = '<div style="padding: 20px; color: #666;">Generating QR Code...</div>';
+        
+        generatedCanvas = document.createElement('canvas');
+        currentStudentId = id;
+
+        // Generate QR code with enhanced options
+        QRCode.toCanvas(generatedCanvas, id, {
+          errorCorrectionLevel: 'H',  // High error correction
+          width: 400,                 // HD Quality
+          margin: 2,                  // Minimal margin
+          color: {
+            dark: '#000000',          // Black foreground
+            light: '#FFFFFF'          // White background
+          }
+        }, function (err) {
+          if (err) {
+            console.error("QR generation error:", err);
+            qrContainer.innerHTML = '<div style="padding: 20px; color: #ef4444;">Error generating QR code. Please try again.</div>';
+            showMessage("Failed to generate QR code", "error");
+            return;
+          }
+          
+          // Success
+          qrContainer.innerHTML = "";
+          qrContainer.appendChild(generatedCanvas);
+          downloadBtn.style.display = "inline-block";
+          showMessage(`✅ QR Code generated for ${id}`, "success");
+          
+          // Auto-focus download button for better UX
+          setTimeout(() => downloadBtn.focus(), 100);
+        });
+        
+      } catch (error) {
+        console.error("Error in generateQR:", error);
+        showMessage("An unexpected error occurred", "error");
+      }
     }
 
+    // Enhanced download with better naming and error handling
     function downloadQR() {
-      if (!generatedCanvas) return;
-      let link = document.createElement("a");
-      link.download = "Student_QR.png";
-      link.href = generatedCanvas.toDataURL("image/png", 1.0); // 1.0 = HD Quality
-      link.click();
+      try {
+        if (!generatedCanvas) {
+          showMessage("No QR code to download", "warning");
+          return;
+        }
+        
+        if (!currentStudentId) {
+          showMessage("Invalid QR code data", "error");
+          return;
+        }
+
+        const link = document.createElement("a");
+        const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        link.download = `Student_QR_${currentStudentId}_${timestamp}.png`;
+        link.href = generatedCanvas.toDataURL("image/png", 1.0); // Maximum quality
+        
+        // Add to DOM temporarily for download
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showMessage(`✅ QR Code downloaded: ${link.download}`, "success");
+        console.log(`QR Code downloaded for student: ${currentStudentId}`);
+        
+      } catch (error) {
+        console.error("Error downloading QR:", error);
+        showMessage("Failed to download QR code", "error");
+      }
     }
+
+    // Enhanced message display system
+    function showMessage(message, type = "info") {
+      // Remove existing message
+      const existingMsg = document.querySelector('.message-toast');
+      if (existingMsg) {
+        existingMsg.remove();
+      }
+      
+      const colors = {
+        success: '#22c55e',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+      };
+      
+      const messageEl = document.createElement('div');
+      messageEl.className = 'message-toast';
+      messageEl.textContent = message;
+      messageEl.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${colors[type] || colors.info};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideDown 0.3s ease-out;
+      `;
+      
+      // Add animation keyframes if not already added
+      if (!document.querySelector('#message-styles')) {
+        const style = document.createElement('style');
+        style.id = 'message-styles';
+        style.textContent = `
+          @keyframes slideDown {
+            from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      document.body.appendChild(messageEl);
+      
+      // Auto-remove after 3 seconds
+      setTimeout(() => {
+        if (messageEl.parentNode) {
+          messageEl.style.animation = 'slideDown 0.3s ease-out reverse';
+          setTimeout(() => messageEl.remove(), 300);
+        }
+      }, 3000);
+    }
+
+    // Enhanced input handling with real-time validation
+    document.addEventListener('DOMContentLoaded', function() {
+      const idInput = document.getElementById("student-id");
+      if (idInput) {
+        // Real-time validation feedback
+        idInput.addEventListener('input', function() {
+          const value = this.value.trim().toUpperCase();
+          this.value = value; // Auto-uppercase
+          
+          if (value && !validateStudentId(value)) {
+            this.style.borderColor = '#ef4444';
+            this.title = 'Invalid format. Use only letters and numbers (minimum 3 characters)';
+          } else {
+            this.style.borderColor = '';
+            this.title = '';
+          }
+        });
+        
+        // Enter key support
+        idInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            generateQR();
+          }
+        });
+      }
+    });
   </script>
 </body>
 </html>

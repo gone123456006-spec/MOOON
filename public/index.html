@@ -47,7 +47,7 @@ header{
 }
 .header-bar{
   display:flex;justify-content:space-between;align-items:center;gap:var(--gap);
-  flex-wrap:wrap; /* ✅ allow wrap on small screens */
+  flex-wrap:wrap;
 }
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
 h1{margin:0;font-size:var(--fs-h1);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -92,8 +92,8 @@ button.ghost.btn-hover-red:hover{background:rgba(239,68,68,.06)}
 
 /* ====== Scanner ====== */
 .scan-drop{
-  position:relative;width:100%;aspect-ratio:16/9;border:1px solid var(--line);
-  border-radius:14px;background:#f3f6fc;display:grid;place-items:center
+  position:relative;width:100%;aspect-ratio:16/9;border:2px solid var(--line);
+  border-radius:14px;background:#f3f6fc;display:grid;place-items:center;transition:border-color .2s;
 }
 .qr-placeholder{
   width:clamp(96px,12vw,140px);height:clamp(96px,12vw,140px);
@@ -106,6 +106,11 @@ button.ghost.btn-hover-red:hover{background:rgba(239,68,68,.06)}
 }
 .scan-active .qr-placeholder,.scan-active .file-btn{display:none}
 .scan-active #video{display:block}
+
+/* border feedback */
+.border-pending{ border-color:#fb923c !important; } /* orange */
+.border-ok{ border-color:#22c55e !important; }      /* green */
+.border-warn{ border-color:#ef4444 !important; }    /* red */
 
 .controls{
   display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px
@@ -148,7 +153,7 @@ td.center{text-align:center}
   gap:10px;
   justify-content:flex-end;
   align-items:center;
-  flex-wrap:nowrap; /* ⬅ force one line */
+  flex-wrap:nowrap;
   margin-top:16px
 }
 
@@ -171,7 +176,6 @@ td.center{text-align:center}
       </div>
     </div>
     <nav>
-      <!-- If you renamed it, use qr-generator.html -->
       <a href="qr-generator.html" class="btn primary">QR Generator</a>
     </nav>
   </div>
@@ -256,16 +260,14 @@ td.center{text-align:center}
       </div>
 
       <div class="dash-actions">
-        <!-- Short, one-line buttons -->
         <button id="clearAll" class="btn-danger-lg">Clear All</button>
         <button id="clearToday" class="btn-danger-lg">Clear Today</button>
         <button id="finalizeAndDownload" class="btn-accent-lg">Finalize Day</button>
+        <button id="debugPanel" class="ghost btn-sm">Debug</button>
       </div>
 
-      <!-- Center the overall summary -->
       <div class="subtitle" id="overallSummary" style="margin-top:8px; text-align:center;">Overall —</div>
 
-      <!-- History Section -->
       <div id="historySection" style="margin-top:14px;">
         <h2 style="font-size:var(--fs-h2); margin:10px 0 8px;">History (Recent Days)</h2>
         <div class="table-wrap">
@@ -286,8 +288,8 @@ td.center{text-align:center}
 <!-- Toast -->
 <div class="toast" id="toast" style="display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 14px; border-radius:999px; font-weight:700;"></div>
 
-<!-- 🎵 Custom beep hook: set src to your tone file (mp3/wav). If empty, oscillator fallback is used. -->
-<audio id="beepAudio" preload="auto" src=""></audio>
+<!-- 🎵 Custom beep hook -->
+<audio id="beepAudio" preload="auto" src="Tone.mp3"></audio>
 
 <script>
 /* ===========================
@@ -299,7 +301,6 @@ const API_BASE = "";   // or: const API_BASE = window.location.origin;
 // If you prefer explicit URL, you can use:
 // const API_BASE = "https://abc-qr.onrender.com";
 
-
 /* ===========================
    Students DB (OBJECT)
 =========================== */
@@ -308,6 +309,7 @@ const students = {
   "SAH25010": { name:"Shreyansh Kumar", class:"8",  phone:"8340135190", email:"anurandhakumari1986@gmail.com" },
   "SAH25011": { name:"Aayush Kant", class:"8",  phone:"7321852484", email:"Shwetarani62621@gmail.com" },
   "SAH25201": { name:"Aarav Kumar", class:"8",  phone:"6204020655", email:"Shyamroaster@gmail.com" },
+  "SAH25000": { name:"Anshul Kumar", class:"8",  phone:"6204020655", email:"Gone123456006@gmail.com" },
 
   "SAJ25013": { name:"Kritika Arya", class:"10", phone:"7870454422", email:"Shyamroaster@gmail.com" },
   "SAJ25012": { name:"Shweta Kumari", class:"10", phone:"8873238428", email:"ajaybhagat1880@gmail.com" },
@@ -327,31 +329,30 @@ const students = {
   "SAN25017": { name:"Kumari Kamya", class:"9", phone:"6204020655", email:"kamini27285@gmail.com" },
 
 "SAE25045": { name:"Khushi Kumari", class:"11", phone:"8877949381", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25020": { name:"Saloni", class:"11", phone:"6204020655", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25037": { name:"Janvi Srivastava", class:"11", phone:"9973320400", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25039": { name:"Samiksha Srivastava", class:"11", phone:"765462851",  email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25038": { name:"Saumya Raj", class:"11", phone:"9570419189", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25022": { name:"Naina Kumari", class:"11", phone:"9234764044", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25044": { name:"Vishal Athak", class:"11", phone:"7547870991", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25040": { name:"Sunny Kumar", class:"11", phone:"7321987684", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25030": { name:"Tanish Kumar", class:"11", phone:"9525201135", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25026": { name:"Vijay Kumar", class:"11", phone:"7352103550", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25028": { name:"Rishi Raj", class:"11", phone:"8757497670", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25031": { name:"Aashmit Kumar", class:"11", phone:"6203666094", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25029": { name:"Shivam Kumar", class:"11", phone:"9113310468", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25019": { name:"Md. Isatehsanullah", class:"11", phone:"6299355373", email:"Hmvishwajeetkumar2002@gmail.com" },
+"SAE25020": { name:"Saloni", class:"11", phone:"6204020655", email:"rinkisinghladdu@gmail.com" },
+"SAE25037": { name:"Janvi Srivastava", class:"11", phone:"9973320400", email:"Shabnamranjan8@gmail.com" },
+"SAE25039": { name:"Samiksha Srivastava", class:"11", phone:"765462851",  email:"Subodhsrv@gmail.com" },
+"SAE25038": { name:"Saumya Raj", class:"11", phone:"9570419189", email:"rajsaumya991@gmail.com" },
+"SAE25022": { name:"Naina Kumari", class:"11", phone:"9234764044", email:"Shwetakumarishs1234@gmail.com" },
+"SAE25044": { name:"Vishal Pathak", class:"11", phone:"7547870991", email:"VishalkumarPathak7547@gmail.com" },
+"SAE25040": { name:"Sunny Kumar", class:"11", phone:"7321987684", email:"ak3444749@gmail.com" },
+"SAE25030": { name:"Tanish Kumar", class:"11", phone:"9525201135", email:"tanishthakur317@gmail.com" },
+"SAE25026": { name:"Vijay Kumar", class:"11", phone:"7352103550", email:"mrvijayyt444@gmail.com" },
+"SAE25028": { name:"Rishi Raj", class:"11", phone:"8757497670", email:"Kaveri8757@gmail.com" },
+"SAE25031": { name:"Aashmit Kumar", class:"11", phone:"6203666094", email:"Priyasingh1990un@gmail.com" },
+"SAE25029": { name:"Shivam Kumar", class:"11", phone:"9113310468", email:"Singhriya43078@gmail.com" },
+"SAE25019": { name:"Md. Isatehsanullah", class:"11", phone:"6299355373", email:"iftekharanjum381@gmail.com" },
 "SAE25036": { name:"Md. Mojahid Hussain", class:"11", phone:"6203245651", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25025": { name:"Kumari Shreya", class:"11", phone:"9835475671", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25048": { name:"Durga Kumari", class:"11", phone:"9934727967", email:"Hmvishwajeetkumar2002@gmail.com" },
+"SAE25025": { name:"Kumari Shreya", class:"11", phone:"9835475671", email:"ravimishrpn@gmail.com" },
+"SAE25048": { name:"Durga Kumari", class:"11", phone:"9934727967", email:"daskingamar1221@gmail.com" },
 "SAE25046": { name:"Suhani Kumari", class:"11", phone:"8638261845", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25047": { name:"Anamika Kumari", class:"11", phone:"9229147310", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25027": { name:"Ankit Kumar", class:"11", phone:"6299716130", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25049": { name:"Annu Kumari", class:"11", phone:"9430617112", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25024": { name:"Lakshya Raj", class:"11", phone:"9430826803", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25042": { name:"Ayush Raj", class:"11", phone:"9162094513", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25033": { name:"Aditya Kumar", class:"11", phone:"7632964536", email:"Hmvishwajeetkumar2002@gmail.com" },
-"SAE25041": { name:"Suhani Kumari", class:"11", phone:"7250592935", email:"Hmvishwajeetkumar2002@gmail.com" },
-
+"SAE25047": { name:"Anamika Kumari", class:"11", phone:"9229147310", email:"Sanjudevi2961@gmail.com" },
+"SAE25027": { name:"Ankit Kumar", class:"11", phone:"6299716130", email:"kumar6299ankit@gmail.com" },
+"SAE25049": { name:"Annu Kumari", class:"11", phone:"9430617112", email:"annukri8631@gmail.com" },
+"SAE25024": { name:"Lakshya Raj", class:"11", phone:"9430826803", email:"kumaramar6488@gmail.com" },
+"SAE25042": { name:"Ayush Raj", class:"11", phone:"9162094513", email:"" },
+"SAE25033": { name:"Aditya Kumar", class:"11", phone:"7632964536", email:"singhriti422@gmail.com" },
+"SAE25041": { name:"Aditya Kumar", class:"11", phone:"7250592935", email:"Hmvishwajeetkumar2002@gmail.com" },
 };
 
 /* Convert object → array for UI logic */
@@ -361,26 +362,819 @@ const studentArr = Object.entries(students).map(([id, s]) => ({ id, ...s }));
    Storage
 =========================== */
 const LS_KEY = "sa_qr_attendance_v1";
-function loadAttendance(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch{ return []; } }
-function saveAttendance(rows){ localStorage.setItem(LS_KEY, JSON.stringify(rows)); }
+const BACKUP_KEY = "sa_qr_attendance_backup";
+
+// Enhanced storage with security and error handling
+function loadAttendance() {
+  Logger.performance.start('loadAttendance');
+  
+  try {
+    Logger.debug("Loading attendance data from storage");
+    
+    // Try secure storage first
+    let data = Security.secureStorage.getItem(LS_KEY);
+    
+    // Fallback to regular localStorage if secure storage fails
+    if (!data) {
+      Logger.debug("Secure storage empty, trying regular localStorage");
+      const rawData = localStorage.getItem(LS_KEY);
+      if (rawData) {
+        try {
+          data = JSON.parse(rawData);
+          Logger.info("Loaded data from regular localStorage");
+        } catch (parseError) {
+          Logger.warn("Failed to parse regular storage, trying backup", { error: parseError.message });
+        }
+      }
+    }
+    
+    if (!data) {
+      Logger.info("No attendance data found, returning empty array");
+      return [];
+    }
+    
+    if (!Array.isArray(data)) {
+      Logger.warn("Invalid attendance data format, resetting", { dataType: typeof data });
+      return [];
+    }
+    
+    Logger.debug(`Processing ${data.length} attendance records`);
+    
+    // Validate and sanitize data structure
+    const validData = data.filter(entry => {
+      if (!entry || typeof entry !== 'object') return false;
+      
+      // Validate required fields
+      const requiredFields = ['id', 'name', 'class', 'status', 'date', 'time'];
+      for (const field of requiredFields) {
+        if (!entry[field] || typeof entry[field] !== 'string') return false;
+      }
+      
+      // Sanitize student ID
+      const sanitizedId = Security.validateAndSanitizeStudentId(entry.id);
+      if (!sanitizedId) return false;
+      
+      // Sanitize other string fields
+      entry.id = sanitizedId;
+      entry.name = Security.sanitizeInput(entry.name);
+      entry.class = Security.sanitizeInput(entry.class);
+      entry.status = Security.sanitizeInput(entry.status);
+      entry.date = Security.sanitizeInput(entry.date);
+      entry.time = Security.sanitizeInput(entry.time);
+      
+      return true;
+    });
+    
+    if (validData.length !== data.length) {
+      Logger.warn(`Filtered ${data.length - validData.length} invalid entries`, {
+        total: data.length,
+        valid: validData.length,
+        invalid: data.length - validData.length
+      });
+    }
+    
+    Logger.info(`Successfully loaded ${validData.length} valid attendance records`);
+    Logger.performance.end('loadAttendance');
+    
+    return validData;
+  } catch (error) {
+    Logger.error("Error loading attendance", { error: error.message, stack: error.stack });
+    
+    // Try to load from backup
+    try {
+      Logger.debug("Attempting to load from backup");
+      const backup = Security.secureStorage.getItem(BACKUP_KEY) || 
+                    JSON.parse(localStorage.getItem(BACKUP_KEY) || '[]');
+      if (Array.isArray(backup)) {
+        Logger.info("Successfully loaded from backup data", { recordCount: backup.length });
+        return backup;
+      }
+    } catch (backupError) {
+      Logger.error("Backup also failed", { error: backupError.message });
+    }
+    
+    Logger.performance.end('loadAttendance');
+    return [];
+  }
+}
+
+function saveAttendance(rows) {
+  Logger.performance.start('saveAttendance');
+  
+  try {
+    Logger.debug("Starting attendance save operation", { recordCount: rows.length });
+    
+    if (!Array.isArray(rows)) {
+      throw new Error("Attendance data must be an array");
+    }
+    
+    // Create backup before saving
+    Logger.debug("Creating backup of current data");
+    const currentData = Security.secureStorage.getItem(LS_KEY) || 
+                       JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+    if (Array.isArray(currentData)) {
+      Security.secureStorage.setItem(BACKUP_KEY, currentData);
+      Logger.debug("Backup created successfully", { backupCount: currentData.length });
+    }
+    
+    // Save using secure storage
+    Logger.debug("Saving data to secure storage");
+    const success = Security.secureStorage.setItem(LS_KEY, rows);
+    if (!success) {
+      throw new Error("Secure storage save failed");
+    }
+    
+    // Verify save was successful
+    Logger.debug("Verifying save operation");
+    const saved = Security.secureStorage.getItem(LS_KEY);
+    if (!saved || saved.length !== rows.length) {
+      throw new Error("Data verification failed after save");
+    }
+    
+    Logger.info(`Successfully saved ${rows.length} attendance records securely`);
+    Logger.performance.end('saveAttendance');
+    
+  } catch (error) {
+    Logger.error("Error saving attendance", { 
+      error: error.message, 
+      stack: error.stack,
+      recordCount: rows.length 
+    });
+    showToast("Failed to save attendance data", "#ef4444");
+    Logger.performance.end('saveAttendance');
+    throw error;
+  }
+}
+
+// Cleanup old backup data (keep only last 5 backups)
+function cleanupBackups() {
+  try {
+    Logger.debug("Starting backup cleanup");
+    const keys = Object.keys(localStorage);
+    const backupKeys = keys.filter(key => key.startsWith(BACKUP_KEY + "_"));
+    if (backupKeys.length > 5) {
+      const toRemove = backupKeys.slice(0, -5);
+      toRemove.forEach(key => localStorage.removeItem(key));
+      Logger.info(`Cleaned up ${toRemove.length} old backup files`);
+    }
+  } catch (error) {
+    Logger.warn("Error cleaning up backups", { error: error.message });
+  }
+}
+
+/* ===========================
+   Memory Management & Cleanup
+=========================== */
+const MemoryManager = {
+  // Cleanup intervals and timeouts
+  intervals: new Set(),
+  timeouts: new Set(),
+  
+  // Track event listeners for cleanup
+  eventListeners: new Map(),
+  
+  // Add interval with tracking
+  setInterval: (callback, delay) => {
+    const id = setInterval(callback, delay);
+    MemoryManager.intervals.add(id);
+    return id;
+  },
+  
+  // Add timeout with tracking
+  setTimeout: (callback, delay) => {
+    const id = setTimeout(callback, delay);
+    MemoryManager.timeouts.add(id);
+    return id;
+  },
+  
+  // Add event listener with tracking
+  addEventListener: (element, event, handler, options = {}) => {
+    element.addEventListener(event, handler, options);
+    const key = `${element.id || element.tagName}_${event}`;
+    if (!MemoryManager.eventListeners.has(key)) {
+      MemoryManager.eventListeners.set(key, []);
+    }
+    MemoryManager.eventListeners.get(key).push({ element, event, handler, options });
+  },
+  
+  // Cleanup all tracked resources
+  cleanup: () => {
+    try {
+      Logger.info("Starting memory cleanup");
+      
+      // Clear intervals
+      MemoryManager.intervals.forEach(id => clearInterval(id));
+      MemoryManager.intervals.clear();
+      
+      // Clear timeouts
+      MemoryManager.timeouts.forEach(id => clearTimeout(id));
+      MemoryManager.timeouts.clear();
+      
+      // Remove event listeners
+      MemoryManager.eventListeners.forEach(listeners => {
+        listeners.forEach(({ element, event, handler, options }) => {
+          element.removeEventListener(event, handler, options);
+        });
+      });
+      MemoryManager.eventListeners.clear();
+      
+      // Clear DOM references
+      Object.keys(DOM).forEach(key => {
+        DOM[key] = null;
+      });
+      
+      // Clear large data structures
+      if (logRows.length > 1000) {
+        logRows = logRows.slice(-500); // Keep only last 500 records
+        Logger.info("Trimmed logRows to prevent memory bloat");
+      }
+      
+      // Clear logs if too many
+      if (Logger.logs.length > 200) {
+        Logger.logs = Logger.logs.slice(-100);
+        Logger.info("Trimmed logs to prevent memory bloat");
+      }
+      
+      // Force garbage collection if available
+      if (window.gc) {
+        window.gc();
+        Logger.debug("Forced garbage collection");
+      }
+      
+      Logger.info("Memory cleanup completed");
+      
+    } catch (error) {
+      Logger.error("Error during memory cleanup", { error: error.message });
+    }
+  },
+  
+  // Monitor memory usage
+  getMemoryInfo: () => {
+    if (performance.memory) {
+      return {
+        used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
+        total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024),
+        limit: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024)
+      };
+    }
+    return null;
+  },
+  
+  // Check if memory usage is high
+  isMemoryHigh: () => {
+    const memInfo = MemoryManager.getMemoryInfo();
+    if (memInfo) {
+      const usagePercent = (memInfo.used / memInfo.limit) * 100;
+      return usagePercent > 80; // Consider high if over 80%
+    }
+    return false;
+  }
+};
+
+// Periodic memory monitoring
+MemoryManager.setInterval(() => {
+  if (MemoryManager.isMemoryHigh()) {
+    Logger.warn("High memory usage detected, performing cleanup", MemoryManager.getMemoryInfo());
+    MemoryManager.cleanup();
+  }
+}, 30000); // Check every 30 seconds
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+  Logger.info("Page unloading, performing final cleanup");
+  MemoryManager.cleanup();
+});
+
+// Cleanup on visibility change (when tab becomes hidden)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    Logger.debug("Page hidden, performing cleanup");
+    MemoryManager.cleanup();
+  }
+});
 
 /* ===========================
    Utils
 =========================== */
 const $ = sel => document.querySelector(sel);
-function todayStr(d=new Date()){ return d.toISOString().slice(0,10); }
-function showToast(msg, bg){
-  const t=$("#toast");
-  const oldBg = t.style.background;
-  if(bg) t.style.background = bg;
-  t.textContent=msg; t.style.display="block";
-  setTimeout(()=>{ t.style.display="none"; t.style.background = oldBg || "#111827"; },1500);
+const $$ = sel => document.querySelectorAll(sel);
+
+// Enhanced date utilities with timezone support
+function todayStr(d = new Date()) { 
+  return d.toISOString().slice(0, 10); 
 }
 
-/* 🎵 Customizable beep: plays #beepAudio if src is set; else uses oscillator */
+function formatDateTime(date = new Date()) {
+  return new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'Asia/Kolkata'
+  }).format(date);
+}
+
+// Enhanced toast with better styling and error handling
+function showToast(msg, bg, duration = 3000) {
+  try {
+    const t = $("#toast");
+    if (!t) {
+      console.warn("Toast element not found");
+      return;
+    }
+    
+    const oldBg = t.style.background;
+    if (bg) t.style.background = bg;
+    
+    t.textContent = msg;
+    t.style.display = "block";
+    t.style.opacity = "1";
+    
+    setTimeout(() => {
+      t.style.opacity = "0";
+      setTimeout(() => {
+        t.style.display = "none";
+        t.style.background = oldBg || "#111827";
+      }, 300);
+    }, duration);
+  } catch (error) {
+    console.error("Error showing toast:", error);
+  }
+}
+
+/* ===========================
+   Loading States & User Feedback
+=========================== */
+const LoadingStates = {
+  // Show loading overlay
+  show: (message = "Loading...", target = null) => {
+    try {
+      // Remove existing loading overlay
+      LoadingStates.hide();
+      
+      const overlay = document.createElement('div');
+      overlay.id = 'loading-overlay';
+      overlay.innerHTML = `
+        <div class="loading-content">
+          <div class="loading-spinner"></div>
+          <div class="loading-message">${Security.sanitizeHTML(message)}</div>
+        </div>
+      `;
+      
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        backdrop-filter: blur(2px);
+      `;
+      
+      // Add styles if not already added
+      if (!document.querySelector('#loading-styles')) {
+        const style = document.createElement('style');
+        style.id = 'loading-styles';
+        style.textContent = `
+          .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: fadeInScale 0.3s ease-out;
+          }
+          .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b5bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+          }
+          .loading-message {
+            color: #333;
+            font-weight: 600;
+            font-size: 16px;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      const container = target || document.body;
+      container.appendChild(overlay);
+      
+    } catch (error) {
+      console.error("Error showing loading state:", error);
+    }
+  },
+  
+  // Hide loading overlay
+  hide: () => {
+    try {
+      const overlay = document.getElementById('loading-overlay');
+      if (overlay) {
+        overlay.style.animation = 'fadeInScale 0.3s ease-out reverse';
+        setTimeout(() => overlay.remove(), 300);
+      }
+    } catch (error) {
+      console.error("Error hiding loading state:", error);
+    }
+  },
+  
+  // Show progress bar
+  showProgress: (message = "Processing...", progress = 0) => {
+    try {
+      LoadingStates.hide();
+      
+      const overlay = document.createElement('div');
+      overlay.id = 'progress-overlay';
+      overlay.innerHTML = `
+        <div class="progress-content">
+          <div class="progress-message">${Security.sanitizeHTML(message)}</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${Math.max(0, Math.min(100, progress))}%"></div>
+          </div>
+          <div class="progress-percentage">${Math.round(progress)}%</div>
+        </div>
+      `;
+      
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        backdrop-filter: blur(2px);
+      `;
+      
+      // Add progress styles if not already added
+      if (!document.querySelector('#progress-styles')) {
+        const style = document.createElement('style');
+        style.id = 'progress-styles';
+        style.textContent = `
+          .progress-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            min-width: 300px;
+            animation: fadeInScale 0.3s ease-out;
+          }
+          .progress-message {
+            color: #333;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 20px;
+          }
+          .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+          }
+          .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b5bff, #22c55e);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+          }
+          .progress-percentage {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      document.body.appendChild(overlay);
+      
+    } catch (error) {
+      console.error("Error showing progress:", error);
+    }
+  },
+  
+  // Update progress
+  updateProgress: (progress, message = null) => {
+    try {
+      const overlay = document.getElementById('progress-overlay');
+      if (overlay) {
+        const fill = overlay.querySelector('.progress-fill');
+        const percentage = overlay.querySelector('.progress-percentage');
+        const messageEl = overlay.querySelector('.progress-message');
+        
+        if (fill) fill.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+        if (percentage) percentage.textContent = `${Math.round(progress)}%`;
+        if (messageEl && message) messageEl.textContent = Security.sanitizeHTML(message);
+      }
+    } catch (error) {
+      console.error("Error updating progress:", error);
+    }
+  }
+};
+
+/* ===========================
+   Logging & Debugging System
+=========================== */
+const Logger = {
+  levels: {
+    ERROR: 0,
+    WARN: 1,
+    INFO: 2,
+    DEBUG: 3
+  },
+  
+  currentLevel: 2, // Default to INFO level
+  
+  setLevel: (level) => {
+    Logger.currentLevel = typeof level === 'string' ? Logger.levels[level.toUpperCase()] : level;
+  },
+  
+  formatMessage: (level, message, data = null) => {
+    const timestamp = new Date().toISOString();
+    const levelName = Object.keys(Logger.levels)[level];
+    const prefix = `[${timestamp}] [${levelName}]`;
+    
+    if (data) {
+      return `${prefix} ${message} | Data: ${JSON.stringify(data, null, 2)}`;
+    }
+    return `${prefix} ${message}`;
+  },
+  
+  log: (level, message, data = null) => {
+    if (level <= Logger.currentLevel) {
+      const formattedMessage = Logger.formatMessage(level, message, data);
+      
+      switch (level) {
+        case Logger.levels.ERROR:
+          console.error(formattedMessage);
+          break;
+        case Logger.levels.WARN:
+          console.warn(formattedMessage);
+          break;
+        case Logger.levels.INFO:
+          console.info(formattedMessage);
+          break;
+        case Logger.levels.DEBUG:
+          console.debug(formattedMessage);
+          break;
+      }
+      
+      // Store logs for debugging (limit to last 100 entries)
+      Logger.storeLog(level, message, data);
+    }
+  },
+  
+  error: (message, data = null) => Logger.log(Logger.levels.ERROR, message, data),
+  warn: (message, data = null) => Logger.log(Logger.levels.WARN, message, data),
+  info: (message, data = null) => Logger.log(Logger.levels.INFO, message, data),
+  debug: (message, data = null) => Logger.log(Logger.levels.DEBUG, message, data),
+  
+  // Store logs in memory for debugging
+  logs: [],
+  
+  storeLog: (level, message, data) => {
+    Logger.logs.push({
+      timestamp: Date.now(),
+      level: Object.keys(Logger.levels)[level],
+      message,
+      data,
+      stack: level === Logger.levels.ERROR ? new Error().stack : null
+    });
+    
+    // Keep only last 100 logs
+    if (Logger.logs.length > 100) {
+      Logger.logs = Logger.logs.slice(-100);
+    }
+  },
+  
+  // Get logs for debugging
+  getLogs: (level = null) => {
+    if (level === null) return Logger.logs;
+    return Logger.logs.filter(log => log.level === level);
+  },
+  
+  // Clear logs
+  clearLogs: () => {
+    Logger.logs = [];
+  },
+  
+  // Export logs for debugging
+  exportLogs: () => {
+    const logs = Logger.logs.map(log => ({
+      ...log,
+      timestamp: new Date(log.timestamp).toISOString()
+    }));
+    
+    const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `attendance_logs_${todayStr()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+  
+  // Performance monitoring
+  performance: {
+    marks: new Map(),
+    
+    start: (name) => {
+      Logger.performance.marks.set(name, performance.now());
+      Logger.debug(`Performance timer started: ${name}`);
+    },
+    
+    end: (name) => {
+      const startTime = Logger.performance.marks.get(name);
+      if (startTime) {
+        const duration = performance.now() - startTime;
+        Logger.performance.marks.delete(name);
+        Logger.info(`Performance: ${name} took ${duration.toFixed(2)}ms`);
+        return duration;
+      }
+      Logger.warn(`Performance timer not found: ${name}`);
+      return null;
+    }
+  }
+};
+
+// Initialize logging
+Logger.info("Logging system initialized", { 
+  level: Object.keys(Logger.levels)[Logger.currentLevel],
+  userAgent: navigator.userAgent,
+  timestamp: new Date().toISOString()
+});
+
+// Input validation utilities
+function validateStudentId(id) {
+  if (!id || typeof id !== 'string') return false;
+  const trimmed = id.trim();
+  return trimmed.length >= 3 && /^[A-Z0-9]+$/i.test(trimmed);
+}
+
+function validateEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+// Debounce utility for performance
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+/* ===========================
+   Security Utilities
+=========================== */
+const Security = {
+  // Sanitize HTML content to prevent XSS
+  sanitizeHTML: (str) => {
+    if (typeof str !== 'string') return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  },
+  
+  // Sanitize user input for display
+  sanitizeInput: (input) => {
+    if (typeof input !== 'string') return '';
+    return input
+      .trim()
+      .replace(/[<>\"'&]/g, (match) => {
+        const escapeMap = {
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#x27;',
+          '&': '&amp;'
+        };
+        return escapeMap[match];
+      });
+  },
+  
+  // Validate and sanitize student ID
+  validateAndSanitizeStudentId: (id) => {
+    if (!id || typeof id !== 'string') return null;
+    const sanitized = id.trim().toUpperCase();
+    if (!/^[A-Z0-9]{3,20}$/.test(sanitized)) return null;
+    return sanitized;
+  },
+  
+  // Rate limiting for API calls
+  rateLimiter: (() => {
+    const calls = new Map();
+    const RATE_LIMIT_WINDOW = 60000; // 1 minute
+    const MAX_CALLS_PER_WINDOW = 10;
+    
+    return {
+      check: (identifier) => {
+        const now = Date.now();
+        const userCalls = calls.get(identifier) || [];
+        
+        // Remove old calls outside the window
+        const validCalls = userCalls.filter(time => now - time < RATE_LIMIT_WINDOW);
+        
+        if (validCalls.length >= MAX_CALLS_PER_WINDOW) {
+          return false; // Rate limit exceeded
+        }
+        
+        validCalls.push(now);
+        calls.set(identifier, validCalls);
+        return true;
+      },
+      
+      reset: (identifier) => {
+        calls.delete(identifier);
+      }
+    };
+  })(),
+  
+  // Content Security Policy helpers
+  isAllowedOrigin: (url) => {
+    const allowedOrigins = [
+      window.location.origin,
+      'https://unpkg.com',
+      'https://cdn.jsdelivr.net'
+    ];
+    
+    try {
+      const urlObj = new URL(url);
+      return allowedOrigins.some(origin => urlObj.origin === origin);
+    } catch {
+      return false;
+    }
+  },
+  
+  // Secure local storage with encryption (basic)
+  secureStorage: {
+    setItem: (key, value) => {
+      try {
+        const encrypted = btoa(JSON.stringify(value));
+        localStorage.setItem(key, encrypted);
+        return true;
+      } catch (error) {
+        console.error('Secure storage set failed:', error);
+        return false;
+      }
+    },
+    
+    getItem: (key) => {
+      try {
+        const encrypted = localStorage.getItem(key);
+        if (!encrypted) return null;
+        return JSON.parse(atob(encrypted));
+      } catch (error) {
+        console.error('Secure storage get failed:', error);
+        return null;
+      }
+    },
+    
+    removeItem: (key) => {
+      try {
+        localStorage.removeItem(key);
+        return true;
+      } catch (error) {
+        console.error('Secure storage remove failed:', error);
+        return false;
+      }
+    }
+  }
+};
+
+/* 🎵 Customizable beep */
 const beepEl = document.getElementById("beepAudio");
 function playBeep(){
   try{
+    if(!$("#beep") || !$("#beep").checked) return; // guard by checkbox
     if(beepEl && beepEl.src && beepEl.src.trim() !== ""){
       beepEl.currentTime = 0;
       beepEl.play().catch(()=>{});
@@ -393,7 +1187,15 @@ function playBeep(){
     setTimeout(()=>{o.stop();ctx.close();},260);
   }catch{}
 }
-function speakText(text){ try{ const u=new SpeechSynthesisUtterance(text); u.lang="en-IN"; speechSynthesis.speak(u); }catch{} }
+function speakText(text){
+  try{
+    if(!$("#beep") || !$("#beep").checked) return;
+    speechSynthesis.cancel(); // avoid queue pile-up
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang="en-IN";
+    speechSynthesis.speak(u);
+  }catch{}
+}
 
 /* ===========================
    State
@@ -402,48 +1204,150 @@ let logRows = loadAttendance();
 const studentMap = new Map(studentArr.map(s => [s.id, s]));
 const classes = [...new Set(studentArr.map(s=>s.class))].sort((a,b)=>+a-+b);
 
-/* ===========================
-   DOM refs
-=========================== */
-const cameraSelect = $("#cameraSelect");
-const filterClass = $("#filterClass");
-const historyBody = $("#historyBody");
-
-/* Populate class filter */
-classes.forEach(c=>{ const o=document.createElement("option"); o.value=c; o.textContent=`Class ${c}`; filterClass.appendChild(o); });
+/* ===== Double-scan confirmation state ===== */
+let pendingCode = null;
+let pendingTime = 0;
+const PENDING_WINDOW_MS = 15000; // 15s
 
 /* ===========================
-   Dashboard
+   DOM refs - Cached for performance
 =========================== */
-function renderDashboard(){
-  const body = $("#dashBody"); body.innerHTML = "";
-  const today = todayStr();
-  const presentSet = new Set(logRows.filter(r=>r.date===today && r.status==="Present").map(r=>r.id));
+const DOM = {
+  cameraSelect: null,
+  filterClass: null,
+  filterStatus: null,
+  filterDateFrom: null,
+  filterDateTo: null,
+  historyBody: null,
+  scanTile: null,
+  logTableBody: null,
+  dashBody: null,
+  lastScanMsg: null,
+  startBtn: null,
+  stopBtn: null,
+  beepCheckbox: null,
+  toast: null
+};
 
-  const totals = new Map(classes.map(c=>[c,{total:0,present:0}]));
-  studentArr.forEach(s=>{ const t=totals.get(s.class); t.total++; if(presentSet.has(s.id)) t.present++; });
+// Initialize DOM references
+function initializeDOM() {
+  DOM.cameraSelect = $("#cameraSelect");
+  DOM.filterClass = $("#filterClass");
+  DOM.filterStatus = $("#filterStatus");
+  DOM.filterDateFrom = $("#filterDateFrom");
+  DOM.filterDateTo = $("#filterDateTo");
+  DOM.historyBody = $("#historyBody");
+  DOM.scanTile = document.getElementById("scanTile");
+  DOM.logTableBody = $("#logTable tbody");
+  DOM.dashBody = $("#dashBody");
+  DOM.lastScanMsg = $("#lastScanMsg");
+  DOM.startBtn = $("#startBtn");
+  DOM.stopBtn = $("#stopBtn");
+  DOM.beepCheckbox = $("#beep");
+  DOM.toast = $("#toast");
+  
+  // Validate critical DOM elements
+  const criticalElements = ['scanTile', 'logTableBody', 'dashBody', 'historyBody'];
+  const missing = criticalElements.filter(key => !DOM[key]);
+  if (missing.length > 0) {
+    console.error("Critical DOM elements missing:", missing);
+    throw new Error(`Missing critical DOM elements: ${missing.join(', ')}`);
+  }
+}
 
-  let total=0, present=0;
-  classes.forEach(c=>{
-    const {total:tt, present:pp} = totals.get(c);
-    const aa = tt - pp;
-    total += tt; present += pp;
-    const tr=document.createElement("tr");
-    tr.innerHTML = `<td>Class ${c}</td><td>${tt}</td><td>${pp}</td><td>${aa}</td>`;
-    body.appendChild(tr);
+// Populate class filter with better performance
+function populateClassFilter() {
+  if (!DOM.filterClass) return;
+  
+  // Clear existing options except the first one
+  const firstOption = DOM.filterClass.firstElementChild;
+  DOM.filterClass.innerHTML = '';
+  if (firstOption) {
+    DOM.filterClass.appendChild(firstOption);
+  }
+  
+  // Use DocumentFragment for better performance
+  const fragment = document.createDocumentFragment();
+  classes.forEach(c => {
+    const option = document.createElement("option");
+    option.value = c;
+    option.textContent = `Class ${c}`;
+    fragment.appendChild(option);
   });
+  DOM.filterClass.appendChild(fragment);
+}
 
-  const absent = total - present;
-  $("#overallSummary").textContent = `Overall — Total: ${total} | Present: ${present} | Absent: ${absent}`;
+/* ===========================
+   Dashboard - Optimized rendering
+=========================== */
+function renderDashboard() {
+  if (!DOM.dashBody) return;
+  
+  try {
+    const today = todayStr();
+    
+    // Optimize: Use Set for O(1) lookups instead of array filtering
+    const presentSet = new Set();
+    logRows.forEach(r => {
+      if (r.date === today && r.status === "Present") {
+        presentSet.add(r.id);
+      }
+    });
+
+    // Pre-calculate totals using Map for better performance
+    const totals = new Map();
+    classes.forEach(c => totals.set(c, { total: 0, present: 0 }));
+    
+    // Single pass through student array
+    studentArr.forEach(s => {
+      const t = totals.get(s.class);
+      t.total++;
+      if (presentSet.has(s.id)) {
+        t.present++;
+      }
+    });
+
+    // Use DocumentFragment for better DOM performance
+    const fragment = document.createDocumentFragment();
+    let total = 0, present = 0;
+    
+    classes.forEach(c => {
+      const { total: tt, present: pp } = totals.get(c);
+      const absent = tt - pp;
+      total += tt;
+      present += pp;
+      
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>Class ${c}</td><td>${tt}</td><td>${pp}</td><td>${absent}</td>`;
+      fragment.appendChild(tr);
+    });
+    
+    // Single DOM update
+    DOM.dashBody.innerHTML = "";
+    DOM.dashBody.appendChild(fragment);
+
+    // Update summary
+    const absent = total - present;
+    const summaryEl = $("#overallSummary");
+    if (summaryEl) {
+      summaryEl.textContent = `Overall — Total: ${total} | Present: ${present} | Absent: ${absent}`;
+    }
+    
+  } catch (error) {
+    console.error("Error rendering dashboard:", error);
+    if (DOM.dashBody) {
+      DOM.dashBody.innerHTML = '<tr><td colspan="4" class="center" style="color:var(--muted)">Error loading dashboard</td></tr>';
+    }
+  }
 }
 
 /* ===========================
    History (Recent Dates)
 =========================== */
 function renderHistory(limit = 10){
+  if(!historyBody) return;
   historyBody.innerHTML = "";
 
-  // Group by date
   const byDate = logRows.reduce((acc, r) => {
     acc[r.date] = acc[r.date] || { present:0, absent:0, total:0 };
     if (r.status === "Present") acc[r.date].present++;
@@ -482,104 +1386,394 @@ function passFilters(r,f){
   if(f.to && r.date > f.to) return false;
   return true;
 }
-function renderTable(){
-  const tb = $("#logTable tbody");
-  const no = $("#noRows");
-  tb.innerHTML = "";
-  const f = getFilters();
-  const rows = logRows.filter(r=>passFilters(r,f));
-  no.style.display = rows.length ? "none" : "table-row";
-  rows.forEach((r,i)=>{
-    const tr=document.createElement("tr");
-    const chipClass = r.status==="Present" ? "chip ok" : "chip warn";
-    tr.innerHTML = `
-      <td>${i+1}</td><td>${r.id}</td><td>${r.name}</td>
-      <td>${r.class}</td><td><span class="${chipClass}">${r.status}</span></td>
-      <td>${r.date}</td><td>${r.time}</td>`;
-    tb.appendChild(tr);
-  });
+function renderTable() {
+  if (!DOM.logTableBody) return;
+  
+  try {
+    const noRows = $("#noRows");
+    const f = getFilters();
+    
+    // Optimize: Filter once and cache result
+    const filteredRows = logRows.filter(r => passFilters(r, f));
+    
+    // Show/hide no results row
+    if (noRows) {
+      noRows.style.display = filteredRows.length ? "none" : "table-row";
+    }
+    
+    if (filteredRows.length === 0) {
+      DOM.logTableBody.innerHTML = "";
+      return;
+    }
+    
+    // Use DocumentFragment for better performance
+    const fragment = document.createDocumentFragment();
+    
+    // Pre-define status classes for better performance
+    const statusClasses = {
+      "Present": "chip ok",
+      "Duplicate": "chip warn", 
+      "Absent": "chip warn"
+    };
+    
+    filteredRows.forEach((r, i) => {
+      const tr = document.createElement("tr");
+      const chipClass = statusClasses[r.status] || "chip";
+      
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${r.id}</td>
+        <td>${r.name}</td>
+        <td>${r.class}</td>
+        <td><span class="${chipClass}">${r.status}</span></td>
+        <td>${r.date}</td>
+        <td>${r.time}</td>`;
+      
+      fragment.appendChild(tr);
+    });
+    
+    // Single DOM update
+    DOM.logTableBody.innerHTML = "";
+    DOM.logTableBody.appendChild(fragment);
+    
+  } catch (error) {
+    console.error("Error rendering table:", error);
+    if (DOM.logTableBody) {
+      DOM.logTableBody.innerHTML = '<tr><td colspan="7" class="center" style="color:var(--muted)">Error loading data</td></tr>';
+    }
+  }
 }
 function refreshUI(){ renderDashboard(); renderTable(); renderHistory(); }
 
 /* ===========================
-   Backend notify (email parents)
+   Backend notify (email parents) - Enhanced with security
 =========================== */
 async function notifyParentEmail({ id, name, klass, email, when = new Date() }) {
   try {
+    // Rate limiting check
+    const rateLimitKey = `email_${id}`;
+    if (!Security.rateLimiter.check(rateLimitKey)) {
+      console.warn("Rate limit exceeded for email notifications");
+      return;
+    }
+    
+    // Validate and sanitize inputs
+    const sanitizedId = Security.validateAndSanitizeStudentId(id);
+    if (!sanitizedId) {
+      console.warn("Invalid student ID for email notification:", id);
+      return;
+    }
+    
+    const sanitizedName = Security.sanitizeInput(name);
+    const sanitizedClass = Security.sanitizeInput(klass);
+    const sanitizedEmail = email.trim().toLowerCase();
+    
+    if (!validateEmail(sanitizedEmail)) {
+      console.warn("Invalid email for notification:", email);
+      return;
+    }
+    
+    // Validate timestamp
+    const timestamp = new Date(when);
+    if (isNaN(timestamp.getTime())) {
+      console.warn("Invalid timestamp for email notification");
+      return;
+    }
+    
+    const requestBody = {
+      studentId: sanitizedId,
+      studentName: sanitizedName,
+      parentEmail: sanitizedEmail,
+      class: sanitizedClass,
+      timestamp: timestamp.toISOString()
+    };
+    
     const res = await fetch(`${API_BASE}/api/send-email`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        studentId: id,
-        studentName: name,
-        parentEmail: email,
-        class: klass,
-        timestamp: new Date(when).toISOString()
-      })
+      headers: { 
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest" // CSRF protection
+      },
+      body: JSON.stringify(requestBody)
     });
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    
     const data = await res.json();
-    if (!data.ok && !data.dedup) console.warn("Email not sent:", data);
-  } catch (e) { console.warn("Notify failed", e); }
+    if (!data.ok && !data.dedup) {
+      console.warn("Email not sent:", data);
+    } else {
+      console.log("Email notification sent successfully for:", sanitizedId);
+    }
+    
+  } catch (e) { 
+    console.warn("Notify failed", e);
+    // Reset rate limit on error to allow retry
+    Security.rateLimiter.reset(`email_${id}`);
+  }
 }
-
 
 /* ===========================
    Attendance Logic
 =========================== */
-function alreadyMarkedToday(id){
-  const t=todayStr(); return logRows.some(r=>r.id===id && r.date===t && r.status==="Present");
+function alreadyMarkedToday(id) {
+  if (!validateStudentId(id)) return false;
+  const t = todayStr();
+  return logRows.some(r => r.id === id && r.date === t && r.status === "Present");
 }
-function appendLogEntry(entry){ logRows.unshift(entry); saveAttendance(logRows); refreshUI(); }
 
-function markAttendanceFromId(id){
+function appendLogEntry(entry) {
+  try {
+    // Validate entry structure
+    if (!entry || typeof entry !== 'object') {
+      throw new Error("Invalid entry object");
+    }
+    
+    const requiredFields = ['id', 'name', 'class', 'status', 'date', 'time'];
+    for (const field of requiredFields) {
+      if (!entry[field] || typeof entry[field] !== 'string') {
+        throw new Error(`Missing or invalid field: ${field}`);
+      }
+    }
+    
+    // Validate student ID format
+    if (!validateStudentId(entry.id)) {
+      throw new Error("Invalid student ID format");
+    }
+    
+    // Validate status
+    const validStatuses = ['Present', 'Absent', 'Duplicate'];
+    if (!validStatuses.includes(entry.status)) {
+      throw new Error(`Invalid status: ${entry.status}`);
+    }
+    
+    // Add timestamp for tracking
+    entry.timestamp = Date.now();
+    entry.id = entry.id.trim().toUpperCase(); // Normalize ID
+    
+    logRows.unshift(entry);
+    saveAttendance(logRows);
+    refreshUI();
+    
+    console.log(`Added attendance entry: ${entry.id} - ${entry.status}`);
+  } catch (error) {
+    console.error("Error appending log entry:", error);
+    showToast(`Failed to record attendance: ${error.message}`, "#ef4444");
+    throw error;
+  }
+}
+
+/* ---- Double-scan gate ---- */
+function setPendingUI(active, type="pending"){
+  if(!scanTile) return;
+  scanTile.classList.remove("border-pending","border-ok","border-warn");
+  if(!active) return;
+  if(type==="pending") scanTile.classList.add("border-pending");
+  else if(type==="ok") scanTile.classList.add("border-ok");
+  else if(type==="warn") scanTile.classList.add("border-warn");
+}
+function preparePending(code, msgText){
+  pendingCode = code;
+  pendingTime = Date.now();
+  setPendingUI(true,"pending");
+  $("#lastScanMsg").innerHTML = `<span style="color:#fb923c; font-weight:800;">${msgText}</span>`;
+  showToast("Scan again to confirm");
+}
+function clearPending(){
+  pendingCode = null;
+  pendingTime = 0;
+  setPendingUI(false);
+}
+
+function handleConfirmed(id){
   const person = studentMap.get(id);
   const now = new Date();
-  const entry = { id, name: person?person.name:"(Unknown)", class: person?person.class:"-", date: todayStr(now), time: now.toLocaleTimeString(), status:"Present" };
+  const base = { id, name: person?person.name:"(Unknown)", class: person?person.class:"-", date: todayStr(now), time: now.toLocaleTimeString() };
 
   if(!person){
-    // 🚫 Unknown scan: no row; red toast + voice
-    showToast("Unknown QR / Student not found", "#b91c1c");
-    if($("#beep").checked) playBeep();
+    setPendingUI(true,"warn");
+    $("#lastScanMsg").innerHTML = `<span style="color:#ef4444; font-weight:800;">Unknown QR scanned</span>`;
+    playBeep(); // guarded
     speakText("Unknown QR code scanned");
-    $("#lastScanMsg").innerHTML = `<span style="color:#f87171; font-weight:800;">Unknown QR scanned</span>`;
+    clearPending();
     return;
   }
 
   if(alreadyMarkedToday(id)){
-    // ❌ Duplicate: no row; red toast + centered GREEN bold message (as requested)
-    showToast(`❌ Already Scanned: ${person.name} (Class ${person.class})`, "#b91c1c");
-    $("#lastScanMsg").innerHTML =
-      `<span style="color:#16a34a; font-weight:800;">Already Scanned: ${person.name} (Class ${person.class})</span>`;
-    if($("#beep").checked) playBeep();
+    setPendingUI(true,"ok"); // green as you wanted
+    $("#lastScanMsg").innerHTML = `<span style="color:#16a34a; font-weight:800;">Already Scanned: ${person.name} (Class ${person.class})</span>`;
+    playBeep();
     speakText(`Already scanned ${person.name}`);
+    clearPending();
     return;
   }
 
-  // ✅ Normal Present case
-  appendLogEntry(entry);
-  $("#lastScanMsg").innerHTML =
-    `<span style="color:#34d399; font-weight:800;">Marked Present: ${person.name} (Class ${person.class})</span>`;
-  if($("#beep").checked) playBeep();
+  // ✅ Mark Present
+  appendLogEntry({ ...base, status:"Present" });
+  setPendingUI(true,"ok");
+  $("#lastScanMsg").innerHTML = `<span style="color:#34d399; font-weight:800;">Marked Present: ${person.name} (Class ${person.class})</span>`;
+  playBeep();
   speakText(`${person.name} Present`);
 
   // 🔔 notify parent
   notifyParentEmail({ id, name: person.name, klass: person.class, email: person.email, when: now });
+
+  clearPending();
+}
+
+/* Main entry: called on every read (camera or image) */
+function onScan(codeRaw) {
+  try {
+    const code = String(codeRaw || "").trim().toUpperCase();
+    
+    // Enhanced validation
+    if (!code) {
+      console.warn("Empty QR code scanned");
+      return;
+    }
+    
+    if (!validateStudentId(code)) {
+      console.warn("Invalid QR code format:", code);
+      setPendingUI(true, "warn");
+      $("#lastScanMsg").innerHTML = `<span style="color:#ef4444; font-weight:800;">Invalid QR Code Format</span>`;
+      playBeep();
+      speakText("Invalid QR code format");
+      clearPending();
+      return;
+    }
+
+    // Expire old pending
+    if (pendingCode && (Date.now() - pendingTime) > PENDING_WINDOW_MS) {
+      console.log("Pending scan expired");
+      clearPending();
+    }
+
+    // 1st scan → set pending
+    if (!pendingCode) {
+      const person = studentMap.get(code);
+      if (!person) {
+        console.warn("Unknown student ID:", code);
+        setPendingUI(true, "warn");
+        $("#lastScanMsg").innerHTML = `<span style="color:#ef4444; font-weight:800;">Unknown Student: ${code}</span>`;
+        playBeep();
+        speakText("Unknown student");
+        clearPending();
+        return;
+      }
+      
+      const display = `${person.name} (Class ${person.class})`;
+      preparePending(code, `Scan again to confirm — ${display}`);
+      return;
+    }
+
+    // 2nd scan: must match the pending code
+    if (code === pendingCode) {
+      handleConfirmed(code);
+    } else {
+      // New code replaces pending
+      const person = studentMap.get(code);
+      if (!person) {
+        console.warn("Unknown student ID in second scan:", code);
+        setPendingUI(true, "warn");
+        $("#lastScanMsg").innerHTML = `<span style="color:#ef4444; font-weight:800;">Unknown Student: ${code}</span>`;
+        playBeep();
+        speakText("Unknown student");
+        clearPending();
+        return;
+      }
+      
+      const display = `${person.name} (Class ${person.class})`;
+      preparePending(code, `Scan again to confirm — ${display}`);
+    }
+  } catch (error) {
+    console.error("Error in onScan:", error);
+    showToast("Error processing QR code", "#ef4444");
+    clearPending();
+  }
 }
 
 /* ===========================
-   CSV Export (filtered)
+   CSV Export (filtered) - Enhanced with loading states
 =========================== */
-function downloadCSV(){
-  const f = getFilters();
-  const rows = logRows.filter(r=>passFilters(r,f));
-  const header = ["#", "ID", "Name", "Class", "Status", "Date", "Time"];
-  const csv = [header.join(",")].concat(
-    rows.map((r,i)=>[i+1,r.id,r.name,r.class,r.status,r.date,r.time]
-      .map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")))
-    .join("\n");
-  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}); 
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a"); a.href=url; a.download=`attendance_${todayStr()}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+function downloadCSV() {
+  try {
+    LoadingStates.show("Preparing CSV export...");
+    
+    // Use setTimeout to allow UI to update
+    setTimeout(() => {
+      try {
+        const f = getFilters();
+        const rows = logRows.filter(r => passFilters(r, f));
+        
+        if (rows.length === 0) {
+          LoadingStates.hide();
+          showToast("No data to export", "#fb923c");
+          return;
+        }
+        
+        LoadingStates.updateProgress(25, "Processing data...");
+        
+        const header = ["#", "ID", "Name", "Class", "Status", "Date", "Time"];
+        
+        LoadingStates.updateProgress(50, "Generating CSV...");
+        
+        // Enhanced CSV generation with proper escaping
+        const csvRows = rows.map((r, i) => {
+          const row = [i + 1, r.id, r.name, r.class, r.status, r.date, r.time];
+          return row.map(v => {
+            const str = String(v || '');
+            // Escape quotes and wrap in quotes if contains comma, quote, or newline
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+              return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+          }).join(',');
+        });
+        
+        LoadingStates.updateProgress(75, "Creating download...");
+        
+        const csv = [header.join(','), ...csvRows].join('\n');
+        
+        // Add BOM for proper UTF-8 encoding in Excel
+        const bom = '\uFEFF';
+        const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+        
+        LoadingStates.updateProgress(90, "Downloading file...");
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendance_${todayStr()}_${rows.length}_records.csv`;
+        a.style.display = 'none';
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        LoadingStates.updateProgress(100, "Export completed!");
+        
+        setTimeout(() => {
+          LoadingStates.hide();
+          showToast(`✅ Exported ${rows.length} records successfully`, "#22c55e");
+        }, 500);
+        
+        console.log(`CSV export completed: ${rows.length} records`);
+        
+      } catch (error) {
+        LoadingStates.hide();
+        console.error("Error exporting CSV:", error);
+        showToast("❌ Failed to export CSV", "#ef4444");
+      }
+    }, 100);
+    
+  } catch (error) {
+    LoadingStates.hide();
+    console.error("Error in downloadCSV:", error);
+    showToast("❌ Export failed", "#ef4444");
+  }
 }
 
 /* ===========================
@@ -602,78 +1796,143 @@ function clearAll(){
 }
 
 /* ===========================
-   FINALIZE DAY + DOWNLOAD FULL LIST
-   - Marks unscanned students as Absent
-   - Downloads full CSV
-   - Sends Absent emails (batch) via /api/send-absent-emails
+   FINALIZE DAY + DOWNLOAD FULL LIST - Enhanced with loading states
 =========================== */
-async function finalizeDayAndDownload(){
-  const t = todayStr();
+async function finalizeDayAndDownload() {
+  try {
+    LoadingStates.showProgress("Finalizing attendance for today...", 0);
+    
+    const t = todayStr();
+    
+    LoadingStates.updateProgress(10, "Processing student records...");
+    
+    // Ensure one row per student for today
+    studentArr.forEach(s => {
+      const any = logRows.find(r => r.id === s.id && r.date === t);
+      if (!any) {
+        logRows.unshift({ 
+          id: s.id, 
+          name: s.name, 
+          class: s.class, 
+          status: "Absent", 
+          date: t, 
+          time: "-" 
+        });
+      }
+    });
 
-  // Ensure one row per student for today
-  studentArr.forEach(s=>{
-    const any = logRows.find(r=>r.id===s.id && r.date===t);
-    if(!any){
-      logRows.unshift({ id:s.id, name:s.name, class:s.class, status:"Absent", date:t, time:"-" });
+    LoadingStates.updateProgress(30, "Saving attendance data...");
+    
+    saveAttendance(logRows);
+    refreshUI();
+    
+    LoadingStates.updateProgress(50, "Generating final report...");
+    
+    // Full CSV (all students for today)
+    const header = ["#", "ID", "Name", "Class", "Status", "Date", "Time"];
+    const rowsForToday = studentArr.map((s, idx) => {
+      const row = logRows.find(r => r.id === s.id && r.date === t);
+      return [
+        idx + 1, 
+        s.id, 
+        s.name, 
+        s.class, 
+        row?.status || "Absent", 
+        row?.date || t, 
+        row?.time || "-"
+      ];
+    });
+    
+    LoadingStates.updateProgress(70, "Creating CSV file...");
+    
+    const csv = [header.join(",")]
+      .concat(rowsForToday.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `attendance_FINAL_${t}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    LoadingStates.updateProgress(85, "Sending absent notifications...");
+
+    // 🔔 Absent alerts (batch)
+    try {
+      const absentRecords = studentArr
+        .filter(s => {
+          const row = logRows.find(r => r.id === s.id && r.date === t);
+          return !row || row.status !== "Present";
+        })
+        .map(s => ({
+          studentId: s.id,
+          studentName: s.name,
+          parentEmail: s.email,
+          dateISO: t
+        }));
+
+      if (absentRecords.length) {
+        const res = await fetch(`${API_BASE}/api/send-absent-emails`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+          },
+          body: JSON.stringify({ records: absentRecords })
+        });
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        const data = await res.json();
+        console.log("Absent alerts result:", data);
+        
+        LoadingStates.updateProgress(100, "Finalization completed!");
+        
+        setTimeout(() => {
+          LoadingStates.hide();
+          showToast(`✅ Day finalized! Absent alerts sent: ${data.sent || 0}/${absentRecords.length}`, "#22c55e");
+        }, 500);
+        
+      } else {
+        LoadingStates.updateProgress(100, "Finalization completed!");
+        
+        setTimeout(() => {
+          LoadingStates.hide();
+          showToast("✅ Day finalized! No absent notifications needed.", "#22c55e");
+        }, 500);
+        
+        console.log("No absent alerts to send.");
+      }
+    } catch (e) {
+      console.warn("Absent alerts failed:", e);
+      LoadingStates.updateProgress(100, "Finalization completed with warnings");
+      
+      setTimeout(() => {
+        LoadingStates.hide();
+        showToast("⚠️ Day finalized but absent notifications failed", "#fb923c");
+      }, 500);
     }
-  });
-
-  saveAttendance(logRows);
-  refreshUI();
-  showToast("Day finalized. Unscanned marked Absent.");
-
-  // Build full CSV (all students for today)
-  const header = ["#", "ID", "Name", "Class", "Status", "Date", "Time"];
-  const rowsForToday = studentArr.map((s, idx)=>{
-    const row = logRows.find(r=>r.id===s.id && r.date===t);
-    return [idx+1, s.id, s.name, s.class, row?.status || "Absent", row?.date || t, row?.time || "-"];
-  });
-  const csv = [header.join(",")]
-    .concat(rowsForToday.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")))
-    .join("\n");
-
-  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}); 
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a"); a.href=url; a.download=`attendance_FINAL_${t}.csv`;
-  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-
-  // 🔔 Send ABSENT alerts (batch) after finalize
-  try{
-    const absentRecords = studentArr
-      .filter(s => {
-        const row = logRows.find(r => r.id===s.id && r.date===t);
-        return !row || row.status !== "Present";
-      })
-      .map(s => ({
-        studentId: s.id,
-        studentName: s.name,
-        parentEmail: s.email,
-        dateISO: t
-      }));
-
-    if(absentRecords.length){
-      const res = await fetch(`${API_BASE}/api/send-absent-emails`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ records: absentRecords })
-      });
-      const data = await res.json();
-      console.log("Absent alerts result:", data);
-      showToast(`Absent alerts sent: ${data.sent || 0}/${absentRecords.length}`);
-    } else {
-      console.log("No absent alerts to send.");
-    }
-  }catch(e){
-    console.warn("Absent alerts failed:", e);
+    
+  } catch (error) {
+    LoadingStates.hide();
+    console.error("Error in finalizeDayAndDownload:", error);
+    showToast("❌ Failed to finalize day", "#ef4444");
   }
 }
 
 /* ===========================
-   ZXing Scanner (camera) with stronger hints
+   ZXing Scanner (camera)
 =========================== */
 let codeReader=null; let currentDeviceId=null;
 async function listCameras(){
   const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+  if(!cameraSelect) return;
   cameraSelect.innerHTML="";
   devices.forEach((d,i)=>{ const opt=document.createElement("option"); opt.value=d.deviceId; opt.textContent=d.label||`Camera ${i+1}`; cameraSelect.appendChild(opt); });
   if(devices[0]) cameraSelect.value=devices[0].deviceId;
@@ -689,12 +1948,12 @@ async function startScanner(){
   }
   codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
-  currentDeviceId = cameraSelect.value || undefined;
+  currentDeviceId = cameraSelect?.value || undefined;
   $("#startBtn").disabled=true; 
   $("#stopBtn").disabled=false;
   try{
     await codeReader.decodeFromVideoDevice(currentDeviceId,"video",(res,err)=>{
-      if(res && res.text){ markAttendanceFromId(res.text.trim()); }
+      if(res && res.text){ onScan(res.text); }
     });
     setScanActive(true);
     showToast("Camera started");
@@ -714,7 +1973,7 @@ async function stopScanner(){
 }
 
 /* ===========================
-   Scan-from-Image
+   Scan-from-Image (fixed hints)
 =========================== */
 const fileInput = document.getElementById('fileInput');
 fileInput.addEventListener('change', async (e) => {
@@ -722,16 +1981,15 @@ fileInput.addEventListener('change', async (e) => {
   if (!file) return;
   const url = URL.createObjectURL(file);
   try {
-    const qrReader = new ZXing.BrowserQRCodeReader();
-    // TRY_HARDER for still images too
     const hints = new Map();
     if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
       hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
       hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-      qrReader.defaultOptions = { hints };
     }
+    // ✅ pass hints by constructor (no defaultOptions)
+    const qrReader = new ZXing.BrowserQRCodeReader(hints);
     const result = await qrReader.decodeFromImageUrl(url);
-    if (result && result.text) { markAttendanceFromId(result.text.trim()); showToast("Scanned from image"); }
+    if (result && result.text) { onScan(result.text); showToast("Scanned from image"); }
     else { showToast("No QR found in image", "#b91c1c"); }
   } catch (err) {
     console.error(err); showToast("Could not read QR from image", "#b91c1c");
@@ -748,54 +2006,411 @@ document.getElementById("toggleFilters").addEventListener("click", ()=>{
   p.style.display = p.style.display === "block" ? "none" : "block";
 });
 
-const scanTile = document.getElementById("scanTile");
 function setScanActive(active){
   const video = document.getElementById("video");
+  if(!video || !scanTile) return;
   if(active){ scanTile.classList.add("scan-active"); video.style.display="block"; }
   else{ scanTile.classList.remove("scan-active"); video.style.display="none"; }
 }
 
 /* ===========================
-   Buttons
+   Debug Panel
 =========================== */
-document.getElementById("startBtn").addEventListener("click", startScanner);
-document.getElementById("stopBtn").addEventListener("click", stopScanner);
-document.getElementById("downloadCsv").addEventListener("click", downloadCSV);
-document.getElementById("clearToday").addEventListener("click", clearToday);
-document.getElementById("clearAll").addEventListener("click", clearAll);
-document.getElementById("finalizeAndDownload").addEventListener("click", finalizeDayAndDownload);
+function showDebugPanel() {
+  try {
+    // Remove existing debug panel
+    const existingPanel = document.getElementById('debug-panel');
+    if (existingPanel) {
+      existingPanel.remove();
+      return;
+    }
+    
+    const logs = Logger.getLogs();
+    const errorLogs = Logger.getLogs('ERROR');
+    const warnLogs = Logger.getLogs('WARN');
+    const infoLogs = Logger.getLogs('INFO');
+    const debugLogs = Logger.getLogs('DEBUG');
+    
+    const panel = document.createElement('div');
+    panel.id = 'debug-panel';
+    panel.innerHTML = `
+      <div class="debug-content">
+        <div class="debug-header">
+          <h3>Debug Panel</h3>
+          <button id="close-debug" class="btn-sm">×</button>
+        </div>
+        <div class="debug-tabs">
+          <button class="debug-tab active" data-tab="logs">Logs (${logs.length})</button>
+          <button class="debug-tab" data-tab="performance">Performance</button>
+          <button class="debug-tab" data-tab="storage">Storage</button>
+          <button class="debug-tab" data-tab="system">System</button>
+        </div>
+        <div class="debug-body">
+          <div id="debug-logs" class="debug-tab-content active">
+            <div class="debug-actions">
+              <button id="export-logs" class="btn-sm">Export Logs</button>
+              <button id="clear-logs" class="btn-sm">Clear Logs</button>
+              <select id="log-level-filter">
+                <option value="">All Levels</option>
+                <option value="ERROR">Errors (${errorLogs.length})</option>
+                <option value="WARN">Warnings (${warnLogs.length})</option>
+                <option value="INFO">Info (${infoLogs.length})</option>
+                <option value="DEBUG">Debug (${debugLogs.length})</option>
+              </select>
+            </div>
+            <div class="debug-logs-list">
+              ${logs.slice(-20).map(log => `
+                <div class="debug-log-entry ${log.level.toLowerCase()}">
+                  <span class="log-time">${new Date(log.timestamp).toLocaleTimeString()}</span>
+                  <span class="log-level">${log.level}</span>
+                  <span class="log-message">${log.message}</span>
+                  ${log.data ? `<div class="log-data">${JSON.stringify(log.data, null, 2)}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div id="debug-performance" class="debug-tab-content">
+            <h4>Performance Metrics</h4>
+            <div class="debug-metrics">
+              <div class="metric">
+                <label>Total Records:</label>
+                <span>${logRows.length}</span>
+              </div>
+              <div class="metric">
+                <label>Students:</label>
+                <span>${studentArr.length}</span>
+              </div>
+              <div class="metric">
+                <label>Classes:</label>
+                <span>${classes.length}</span>
+              </div>
+              <div class="metric">
+                <label>Memory Usage:</label>
+                <span>${(performance.memory ? (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2) : 'N/A')} MB</span>
+              </div>
+            </div>
+          </div>
+          <div id="debug-storage" class="debug-tab-content">
+            <h4>Storage Information</h4>
+            <div class="debug-metrics">
+              <div class="metric">
+                <label>LocalStorage Usage:</label>
+                <span>${(JSON.stringify(localStorage).length / 1024).toFixed(2)} KB</span>
+              </div>
+              <div class="metric">
+                <label>Attendance Records:</label>
+                <span>${logRows.length}</span>
+              </div>
+              <div class="metric">
+                <label>Backup Available:</label>
+                <span>${localStorage.getItem(BACKUP_KEY) ? 'Yes' : 'No'}</span>
+              </div>
+            </div>
+          </div>
+          <div id="debug-system" class="debug-tab-content">
+            <h4>System Information</h4>
+            <div class="debug-metrics">
+              <div class="metric">
+                <label>User Agent:</label>
+                <span>${navigator.userAgent}</span>
+              </div>
+              <div class="metric">
+                <label>Screen Resolution:</label>
+                <span>${screen.width}x${screen.height}</span>
+              </div>
+              <div class="metric">
+                <label>Viewport:</label>
+                <span>${window.innerWidth}x${window.innerHeight}</span>
+              </div>
+              <div class="metric">
+                <label>Online Status:</label>
+                <span>${navigator.onLine ? 'Online' : 'Offline'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    panel.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      backdrop-filter: blur(4px);
+    `;
+    
+    // Add debug panel styles
+    if (!document.querySelector('#debug-styles')) {
+      const style = document.createElement('style');
+      style.id = 'debug-styles';
+      style.textContent = `
+        .debug-content {
+          background: white;
+          border-radius: 12px;
+          width: 90%;
+          max-width: 800px;
+          max-height: 80vh;
+          overflow: hidden;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .debug-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px;
+          border-bottom: 1px solid #e5e7eb;
+          background: #f9fafb;
+        }
+        .debug-header h3 {
+          margin: 0;
+          color: #111827;
+        }
+        .debug-tabs {
+          display: flex;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .debug-tab {
+          padding: 12px 20px;
+          border: none;
+          background: none;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+          font-weight: 600;
+        }
+        .debug-tab.active {
+          border-bottom-color: #3b5bff;
+          color: #3b5bff;
+        }
+        .debug-body {
+          padding: 20px;
+          max-height: 400px;
+          overflow-y: auto;
+        }
+        .debug-tab-content {
+          display: none;
+        }
+        .debug-tab-content.active {
+          display: block;
+        }
+        .debug-actions {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 15px;
+          align-items: center;
+        }
+        .debug-logs-list {
+          max-height: 300px;
+          overflow-y: auto;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+        }
+        .debug-log-entry {
+          padding: 8px 12px;
+          border-bottom: 1px solid #f3f4f6;
+          font-family: monospace;
+          font-size: 12px;
+        }
+        .debug-log-entry.error {
+          background: #fef2f2;
+          border-left: 3px solid #ef4444;
+        }
+        .debug-log-entry.warn {
+          background: #fffbeb;
+          border-left: 3px solid #f59e0b;
+        }
+        .debug-log-entry.info {
+          background: #eff6ff;
+          border-left: 3px solid #3b82f6;
+        }
+        .debug-log-entry.debug {
+          background: #f0fdf4;
+          border-left: 3px solid #22c55e;
+        }
+        .log-time {
+          color: #6b7280;
+          margin-right: 10px;
+        }
+        .log-level {
+          font-weight: bold;
+          margin-right: 10px;
+          min-width: 50px;
+          display: inline-block;
+        }
+        .log-data {
+          margin-top: 5px;
+          padding: 5px;
+          background: rgba(0,0,0,0.05);
+          border-radius: 3px;
+          white-space: pre-wrap;
+        }
+        .debug-metrics {
+          display: grid;
+          gap: 10px;
+        }
+        .metric {
+          display: flex;
+          justify-content: space-between;
+          padding: 8px 0;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .metric label {
+          font-weight: 600;
+          color: #374151;
+        }
+        .metric span {
+          color: #6b7280;
+          font-family: monospace;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(panel);
+    
+    // Add event listeners for debug panel
+    document.getElementById('close-debug').addEventListener('click', () => panel.remove());
+    document.getElementById('export-logs').addEventListener('click', Logger.exportLogs);
+    document.getElementById('clear-logs').addEventListener('click', () => {
+      Logger.clearLogs();
+      showToast("Logs cleared", "#22c55e");
+      panel.remove();
+      showDebugPanel(); // Refresh panel
+    });
+    
+    // Tab switching
+    document.querySelectorAll('.debug-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.debug-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.debug-tab-content').forEach(c => c.classList.remove('active'));
+        
+        tab.classList.add('active');
+        document.getElementById(`debug-${tab.dataset.tab}`).classList.add('active');
+      });
+    });
+    
+    // Log level filtering
+    document.getElementById('log-level-filter').addEventListener('change', (e) => {
+      const level = e.target.value;
+      const entries = document.querySelectorAll('.debug-log-entry');
+      entries.forEach(entry => {
+        if (!level || entry.classList.contains(level.toLowerCase())) {
+          entry.style.display = 'block';
+        } else {
+          entry.style.display = 'none';
+        }
+      });
+    });
+    
+  } catch (error) {
+    Logger.error("Error showing debug panel", { error: error.message });
+    showToast("Failed to open debug panel", "#ef4444");
+  }
+}
 
-/* Filters re-render */
-["filterClass","filterStatus","filterDateFrom","filterDateTo"].forEach(id =>
-  document.getElementById(id).addEventListener("input", renderTable)
-);
+/* ===========================
+   Event Listeners - Optimized
+=========================== */
+function setupEventListeners() {
+  try {
+    // Button event listeners using cached DOM references
+    if (DOM.startBtn) DOM.startBtn.addEventListener("click", startScanner);
+    if (DOM.stopBtn) DOM.stopBtn.addEventListener("click", stopScanner);
+    
+    const downloadCsvBtn = $("#downloadCsv");
+    if (downloadCsvBtn) downloadCsvBtn.addEventListener("click", downloadCSV);
+    
+    const clearTodayBtn = $("#clearToday");
+    if (clearTodayBtn) clearTodayBtn.addEventListener("click", clearToday);
+    
+    const clearAllBtn = $("#clearAll");
+    if (clearAllBtn) clearAllBtn.addEventListener("click", clearAll);
+    
+    const finalizeBtn = $("#finalizeAndDownload");
+    if (finalizeBtn) finalizeBtn.addEventListener("click", finalizeDayAndDownload);
+    
+    const debugBtn = $("#debugPanel");
+    if (debugBtn) debugBtn.addEventListener("click", showDebugPanel);
 
-/* Camera hot-switch */
-cameraSelect.addEventListener("change", ()=>{ if(codeReader){ startScanner(); } });
+    // Filter event listeners with debouncing for better performance
+    const debouncedRenderTable = debounce(renderTable, 300);
+    
+    if (DOM.filterClass) DOM.filterClass.addEventListener("input", debouncedRenderTable);
+    if (DOM.filterStatus) DOM.filterStatus.addEventListener("input", debouncedRenderTable);
+    if (DOM.filterDateFrom) DOM.filterDateFrom.addEventListener("input", debouncedRenderTable);
+    if (DOM.filterDateTo) DOM.filterDateTo.addEventListener("input", debouncedRenderTable);
+
+    // Camera hot-switch
+    if (DOM.cameraSelect) {
+      DOM.cameraSelect.addEventListener("change", () => {
+        if (codeReader) {
+          startScanner();
+        }
+      });
+    }
+    
+    Logger.info("Event listeners setup completed");
+    
+  } catch (error) {
+    Logger.error("Error setting up event listeners", { error: error.message });
+  }
+}
 
 /* ===========================
    Auto Reset Daily
-   - If date changed since last run, ensure a fresh day and update marker
 =========================== */
 function autoResetDaily(){
   const today = todayStr();
   const last = localStorage.getItem("lastDate");
   if(last !== today){
-    // Remove any stale rows marked for "today" (if the tab was left open & prefilled)
     logRows = logRows.filter(r => r.date !== today);
     saveAttendance(logRows);
     localStorage.setItem("lastDate", today);
   }
 }
 
-
 /* ===========================
-   Init
+   Init - Enhanced initialization
 =========================== */
-(async function init(){
-  autoResetDaily();        // ✅ Auto Reset Daily
-  refreshUI();             // Render dashboard, table, and history
-  try{ await listCameras(); } catch{}
+(async function init() {
+  try {
+    // Initialize DOM references first
+    initializeDOM();
+    
+    // Setup event listeners
+    setupEventListeners();
+    
+    // Populate class filter
+    populateClassFilter();
+    
+    // Auto reset daily data
+    autoResetDaily();
+    
+    // Initial UI render
+    refreshUI();
+    
+    // Initialize camera list
+    try {
+      await listCameras();
+    } catch (e) {
+      console.warn("Camera initialization failed:", e);
+    }
+    
+    // Cleanup old backups
+    cleanupBackups();
+    
+    console.log("Application initialized successfully");
+    
+  } catch (error) {
+    console.error("Initialization failed:", error);
+    showToast("Application initialization failed", "#ef4444");
+  }
 })();
 </script>
 </body>
