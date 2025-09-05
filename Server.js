@@ -16,21 +16,31 @@ const PDFDocument = require("pdfkit");
 require("dotenv").config();
 
 const app = express();
+
+// Trust proxy for Render deployment
+app.set('trust proxy', 1);
+
 app.use(express.static(path.join(__dirname, "public")));
 
 
 /* ========== Config (.env) ========== */
 const PORT        = process.env.PORT || 3000;
-const SMTP_USER   = process.env.SMTP_USER || "saamarthyaacademy24@gmail.com"; // your Gmail
-const SMTP_PASS   = process.env.SMTP_PASS || "hbrc ljci pppl hzcr"; // Gmail App Password  
+const SMTP_USER   = process.env.SMTP_USER; // Remove default fallback for security
+const SMTP_PASS   = process.env.SMTP_PASS; // Remove default fallback for security
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const DRY_RUN     = String(process.env.DRY_RUN || "false").toLowerCase() === "true";
+const NODE_ENV    = process.env.NODE_ENV || "development";
 
 const REPORT_DIR = path.join(__dirname, "reports");
 fs.mkdirSync(REPORT_DIR, { recursive: true });
 
 /* ========== Middleware ========== */
-app.use(cors({ origin: CORS_ORIGIN === "*" ? true : CORS_ORIGIN }));
+app.use(cors({ 
+  origin: CORS_ORIGIN === "*" ? true : CORS_ORIGIN,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 
 // Security headers
 app.use((req, res, next) => {
@@ -54,13 +64,28 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rate limiting middleware
+// Enhanced rate limiting middleware with cleanup
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 20;
+const CLEANUP_INTERVAL = 300000; // 5 minutes
+
+// Periodic cleanup of old rate limit entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [clientId, requests] of rateLimitMap.entries()) {
+    const validRequests = requests.filter(time => now - time < RATE_LIMIT_WINDOW);
+    if (validRequests.length === 0) {
+      rateLimitMap.delete(clientId);
+    } else {
+      rateLimitMap.set(clientId, validRequests);
+    }
+  }
+  logger.info(`Rate limit cleanup completed. Active clients: ${rateLimitMap.size}`);
+}, CLEANUP_INTERVAL);
 
 function rateLimit(req, res, next) {
-  const clientId = req.ip || req.connection.remoteAddress;
+  const clientId = req.ip || req.connection.remoteAddress || 'unknown';
   const now = Date.now();
   
   if (!rateLimitMap.has(clientId)) {
@@ -71,9 +96,11 @@ function rateLimit(req, res, next) {
   const validRequests = requests.filter(time => now - time < RATE_LIMIT_WINDOW);
   
   if (validRequests.length >= MAX_REQUESTS_PER_WINDOW) {
+    logger.warn(`Rate limit exceeded for client: ${clientId}`);
     return res.status(429).json({ 
       ok: false, 
-      message: "Too many requests. Please try again later." 
+      message: "Too many requests. Please try again later.",
+      retryAfter: Math.ceil(RATE_LIMIT_WINDOW / 1000)
     });
   }
   
@@ -85,7 +112,27 @@ function rateLimit(req, res, next) {
 // Apply rate limiting to API routes
 app.use('/api', rateLimit);
 
-app.use(express.json({ limit: "1mb" }));
+// Enhanced body parsing with better error handling
+app.use(express.json({ 
+  limit: "1mb",
+  verify: (req, res, buf) => {
+    try {
+      JSON.parse(buf);
+    } catch (e) {
+      res.status(400).json({ ok: false, message: "Invalid JSON payload" });
+      throw new Error('Invalid JSON');
+    }
+  }
+}));
+
+// Handle JSON parsing errors
+app.use((error, req, res, next) => {
+  if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+    logger.error('JSON parsing error', error);
+    return res.status(400).json({ ok: false, message: "Invalid JSON format" });
+  }
+  next();
+});
 
 /* ========== Utilities ========== */
 const isEmail = (s = "") => {
@@ -129,21 +176,60 @@ const logger = {
   success: (msg, data = null) => console.log(`✅ ${msg}`, data ? JSON.stringify(data, null, 2) : '')
 };
 
-/* ========== Mailer ========== */
+/* ========== Enhanced Mailer Configuration ========== */
 let transporter = null;
 if (!DRY_RUN) {
   if (!SMTP_USER || !SMTP_PASS) {
-    console.log("⚠️  Set SMTP_USER and SMTP_PASS in .env (or use DRY_RUN=true).");
+    logger.warn("SMTP credentials not configured. Set SMTP_USER and SMTP_PASS in .env (or use DRY_RUN=true).");
   } else {
-    transporter = nodemailer.createTransport({
+    transporter = nodemailer.createTransporter({
       host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
+      port: 587, // Use STARTTLS instead of SSL for better compatibility
+      secure: false, // Use STARTTLS
+      requireTLS: true,
+      auth: { 
+        user: SMTP_USER, 
+        pass: SMTP_PASS 
+      },
+      // Enhanced configuration for better deliverability
+      pool: true, // Use connection pooling
+      maxConnections: 5,
+      maxMessages: 100,
+      rateDelta: 1000, // 1 second between messages
+      rateLimit: 5, // Max 5 messages per rateDelta
+      // Timeout configurations
+      connectionTimeout: 30000, // 30 seconds
+      greetingTimeout: 30000,
+      socketTimeout: 30000,
+      // TLS options
+      tls: {
+        rejectUnauthorized: true,
+        minVersion: 'TLSv1.2'
+      },
+      // Debug for development
+      debug: NODE_ENV === 'development',
+      logger: NODE_ENV === 'development'
     });
-    transporter.verify()
-      .then(() => console.log("✅ SMTP ready"))
-      .catch(err => console.log("⚠️ SMTP verify failed:", err?.message || err));
+    
+    // Enhanced SMTP verification with retry logic
+    const verifyTransporter = async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          await transporter.verify();
+          logger.success("SMTP connection verified and ready");
+          return;
+        } catch (err) {
+          logger.warn(`SMTP verification attempt ${i + 1} failed:`, err.message);
+          if (i === retries - 1) {
+            logger.error("SMTP verification failed after all retries. Email sending may not work.");
+          } else {
+            await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1))); // Exponential backoff
+          }
+        }
+      }
+    };
+    
+    verifyTransporter();
   }
 }
 
@@ -291,13 +377,23 @@ app.post("/api/send-email", async (req, res) => {
         emailInfo = await transporter.sendMail({
           from: `"Saamarthya Academy" <${SMTP_USER}>`,
           to: sanitizedParentEmail,
+          replyTo: SMTP_USER, // Set reply-to for better deliverability
           subject,
           text,
           html,
-          // Add headers for better deliverability
+          // Enhanced headers for better deliverability
           headers: {
-            'X-Mailer': 'Saamarthya Academy Attendance System',
-            'X-Priority': '3'
+            'X-Mailer': 'Saamarthya Academy Attendance System v1.0',
+            'X-Priority': '3',
+            'X-MSMail-Priority': 'Normal',
+            'Importance': 'Normal',
+            'List-Unsubscribe': `<mailto:${SMTP_USER}?subject=Unsubscribe>`,
+            'Message-ID': `<${Date.now()}.${Math.random().toString(36).substr(2, 9)}@saamarthyaacademy.com>`
+          },
+          // Add envelope for better delivery tracking
+          envelope: {
+            from: SMTP_USER,
+            to: sanitizedParentEmail
           }
         });
         
@@ -381,10 +477,16 @@ app.post("/api/send-pdf-email", async (req, res) => {
         const info = await transporter.sendMail({
           from: `"Saamarthya Academy" <${SMTP_USER}>`,
           to: parentEmail,
+          replyTo: SMTP_USER,
           subject: "Monthly Attendance Report",
           text: "Attached is your child's monthly attendance report.\n\nBest regards,\nSaamarthya Academy",
           html: `<p>Attached is your child's monthly attendance report.</p><p>Best regards,<br><strong>Saamarthya Academy</strong></p>`,
           attachments: [{ filename: path.basename(pdfPath), path: pdfPath }],
+          headers: {
+            'X-Mailer': 'Saamarthya Academy Attendance System v1.0',
+            'X-Priority': '3',
+            'List-Unsubscribe': `<mailto:${SMTP_USER}?subject=Unsubscribe>`
+          }
         });
         console.log("✅ Report email sent:", info.messageId || info.response);
         emailSent = true;
@@ -433,9 +535,15 @@ app.post("/api/send-absent-emails", async (req, res) => {
           const info = await transporter.sendMail({
             from: `"Saamarthya Academy" <${SMTP_USER}>`,
             to: parentEmail,
+            replyTo: SMTP_USER,
             subject,
             text,
             html,
+            headers: {
+              'X-Mailer': 'Saamarthya Academy Attendance System v1.0',
+              'X-Priority': '3',
+              'List-Unsubscribe': `<mailto:${SMTP_USER}?subject=Unsubscribe>`
+            }
           });
           console.log("✅ Absent email sent:", info.messageId || info.response);
           results.push({ studentId, ok: true });
@@ -456,8 +564,63 @@ app.post("/api/send-absent-emails", async (req, res) => {
   }
 });
 
-/* ========== Start ========== */
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`   DRY_RUN=${DRY_RUN ? "true" : "false"} (set in .env)`);
+// Health check endpoint for Render and other platforms
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    version: '1.0.0'
+  });
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  process.exit(0);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+/* ========== Start Server ========== */
+const server = app.listen(PORT, '0.0.0.0', () => {
+  logger.success(`Server running on port ${PORT}`);
+  logger.info(`Environment: ${NODE_ENV}`);
+  logger.info(`DRY_RUN: ${DRY_RUN ? "enabled" : "disabled"}`);
+  logger.info(`SMTP configured: ${SMTP_USER ? "yes" : "no"}`);
+  
+  // Log server configuration for debugging
+  if (NODE_ENV === 'development') {
+    logger.info('Server configuration:', {
+      port: PORT,
+      corsOrigin: CORS_ORIGIN,
+      trustProxy: app.get('trust proxy'),
+      rateLimitWindow: RATE_LIMIT_WINDOW,
+      maxRequestsPerWindow: MAX_REQUESTS_PER_WINDOW
+    });
+  }
+});
+
+// Handle server errors
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    logger.error(`Port ${PORT} is already in use`);
+  } else {
+    logger.error('Server error:', error);
+  }
+  process.exit(1);
 });
