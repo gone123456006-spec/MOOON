@@ -11,33 +11,91 @@
 <style>
 /* ====== Base / Tokens ====== */
 :root{
-  --bg:#f6f7fb; --surface:#ffffff; --ink:#1f2a44; --muted:#6b7280; --line:#e6ebf2;
-  --primary:#3b5bff; --primary-weak:#e8edff; --ok:#15803d; --warn:#b91c1c;
+  --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --bg-solid: #f8fafc;
+  --surface: #ffffff; 
+  --surface-elevated: #ffffff;
+  --ink: #1e293b; 
+  --muted: #64748b; 
+  --line: #e2e8f0;
+  --primary: #3b82f6; 
+  --primary-weak: #dbeafe; 
+  --primary-hover: #2563eb;
+  --ok: #10b981; 
+  --ok-weak: #d1fae5;
+  --warn: #ef4444;
+  --warn-weak: #fee2e2;
+  --accent: #8b5cf6;
+  --accent-weak: #ede9fe;
 
-  --radius-xl:16px; --radius:12px;
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+  --radius-xl: 20px; 
+  --radius: 16px;
+  --radius-sm: 8px;
+  --font: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 
-  /* fluid spacing + type */
-  --pad: clamp(14px, 2.2vw, 24px);
-  --gap: clamp(10px, 1.8vw, 18px);
-  --fs-base: clamp(14px, 1.2vw, 16px);
-  --fs-sm: clamp(12px, .95vw, 14px);
-  --fs-h1: clamp(18px, 2.2vw, 24px);
-  --fs-h2: clamp(16px, 1.8vw, 19px);
+  /* Enhanced fluid spacing + typography */
+  --pad: clamp(16px, 2.5vw, 28px);
+  --gap: clamp(12px, 2vw, 20px);
+  --fs-base: clamp(14px, 1.3vw, 16px);
+  --fs-sm: clamp(12px, 1vw, 14px);
+  --fs-xs: clamp(10px, 0.8vw, 12px);
+  --fs-h1: clamp(20px, 2.5vw, 28px);
+  --fs-h2: clamp(18px, 2vw, 22px);
+  --fs-h3: clamp(16px, 1.8vw, 20px);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Transitions */
+  --transition-fast: 150ms ease-in-out;
+  --transition: 250ms ease-in-out;
+  --transition-slow: 350ms ease-in-out;
 }
 
-*{box-sizing:border-box}
-html,body{height:100%}
+/* ====== Base Styles ====== */
+*{
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html{
+  height: 100%;
+  scroll-behavior: smooth;
+}
+
 body{
-  margin:0;background:var(--bg);color:var(--ink);
-  font-family:var(--font);font-size:var(--fs-base);line-height:1.5;
+  height: 100%;
+  margin: 0;
+  background: var(--bg-solid);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* Add Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ====== Header ====== */
 header{
-  position:sticky;top:0;z-index:10;background:#fff;
-  border-bottom:1px solid var(--line);
-  backdrop-filter:saturate(180%) blur(6px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: saturate(180%) blur(12px);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+header:hover{
+  box-shadow: var(--shadow);
 }
 .wrap{
   max-width:1320px;
@@ -55,29 +113,183 @@ h1{margin:0;font-size:var(--fs-h1);line-height:1.2;white-space:nowrap;overflow:h
 
 /* ====== Buttons / Links ====== */
 a.btn{
-  display:inline-block;text-decoration:none;padding:10px 16px;border-radius:9999px;
-  font-weight:700;transition:all .2s;border:1px solid transparent;white-space:nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  transition: var(--transition);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  font-size: var(--fs-base);
+  min-height: 44px;
+  position: relative;
+  overflow: hidden;
 }
-a.btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-a.btn.primary:hover{background:#2d47cc}
+
+a.btn::before{
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: var(--transition);
+}
+
+a.btn:hover::before{
+  left: 100%;
+}
+
+a.btn.primary{
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+a.btn.primary:hover{
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
 
 button{
-  background:#fff;color:var(--ink);border:1px solid var(--line);
-  padding:10px 14px;border-radius:9999px;font-weight:700;cursor:pointer;transition:.15s;min-height:42px
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  min-height: 44px;
+  font-size: var(--fs-base);
+  position: relative;
+  overflow: hidden;
 }
-button:disabled{opacity:.55;cursor:not-allowed}
-button.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-button.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
-button.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
-button.warn{background:var(--warn);color:#fff;border-color:var(--warn)}
-.btn-hover-red:hover{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.12)}
-button.ghost.btn-hover-red:hover{background:rgba(239,68,68,.06)}
-.btn-sm{font-size:var(--fs-sm);padding:8px 12px;min-height:36px}
-.btn-danger-lg,.btn-accent-lg{
-  padding:12px 18px;border-radius:9999px;font-weight:800;min-height:46px
+
+button::before{
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: var(--transition);
 }
-.btn-danger-lg{background:#ef4444;color:#fff;border:none}
-.btn-accent-lg{background:#1f7a1f;color:#fff;border:none}
+
+button:hover::before{
+  left: 100%;
+}
+
+button:hover{
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+button:active{
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+button:disabled{
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+button:disabled::before{
+  display: none;
+}
+
+button.primary{
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+button.ghost{
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+button.ghost:hover{
+  background: var(--surface);
+  border-color: var(--primary);
+}
+
+button.ok{
+  background: linear-gradient(135deg, var(--ok) 0%, #059669 100%);
+  color: #fff;
+  border-color: var(--ok);
+  box-shadow: var(--shadow);
+}
+
+button.warn{
+  background: linear-gradient(135deg, var(--warn) 0%, #dc2626 100%);
+  color: #fff;
+  border-color: var(--warn);
+  box-shadow: var(--shadow);
+}
+
+.btn-hover-red:hover{
+  border-color: var(--warn);
+  box-shadow: 0 0 0 3px rgba(239,68,68,.15);
+}
+
+button.ghost.btn-hover-red:hover{
+  background: var(--warn-weak);
+}
+
+.btn-sm{
+  font-size: var(--fs-sm);
+  padding: 8px 14px;
+  min-height: 36px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-danger-lg, .btn-accent-lg{
+  padding: 16px 24px;
+  border-radius: var(--radius);
+  font-weight: 700;
+  min-height: 52px;
+  font-size: var(--fs-base);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-danger-lg{
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  border: none;
+}
+
+.btn-danger-lg:hover{
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-xl);
+}
+
+.btn-accent-lg{
+  background: linear-gradient(135deg, var(--ok) 0%, #059669 100%);
+  color: #fff;
+  border: none;
+}
+
+.btn-accent-lg:hover{
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-xl);
+}
 
 /* ====== Layout ====== */
 .grid{display:grid;gap:var(--gap);grid-template-columns:1.15fr .85fr}
@@ -85,20 +297,94 @@ button.ghost.btn-hover-red:hover{background:rgba(239,68,68,.06)}
 
 /* ====== Cards / Sections ====== */
 .card{
-  background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--radius-xl);padding:clamp(14px, 2vw, 20px)
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  padding: clamp(20px, 2.5vw, 32px);
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
 }
-.card h2{margin:0 0 10px;font-size:var(--fs-h2)}
+
+.card::before{
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.card:hover{
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-weak);
+}
+
+.card:hover::before{
+  opacity: 1;
+}
+
+.card h2{
+  margin: 0 0 16px;
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card h2::before{
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--primary);
+  border-radius: 50%;
+  display: inline-block;
+}
 
 /* ====== Scanner ====== */
 .scan-drop{
-  position:relative;width:100%;aspect-ratio:16/9;border:2px solid var(--line);
-  border-radius:14px;background:#f3f6fc;display:grid;place-items:center;transition:border-color .2s;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--primary-weak) 0%, var(--accent-weak) 100%);
+  display: grid;
+  place-items: center;
+  transition: var(--transition);
+  overflow: hidden;
 }
+
+.scan-drop:hover{
+  border-color: var(--primary);
+  transform: scale(1.01);
+  box-shadow: var(--shadow-lg);
+}
+
 .qr-placeholder{
-  width:clamp(96px,12vw,140px);height:clamp(96px,12vw,140px);
-  border-radius:999px;background:radial-gradient(100% 100% at 30% 20%,#7a8cff 0%,#ff6a6a 100%);
-  display:grid;place-items:center;color:#fff;font-size:clamp(32px,4vw,48px);font-weight:800
+  width: clamp(96px, 12vw, 140px);
+  height: clamp(96px, 12vw, 140px);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 800;
+  box-shadow: var(--shadow-lg);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 .scan-drop input[type=file].file-btn{
   position:absolute;top:50%;left:50%;transform:translate(-50%,62px);
@@ -122,30 +408,143 @@ button.ghost.btn-hover-red:hover{background:rgba(239,68,68,.06)}
   flex-wrap:wrap;
 }
 .filterbar .left,.filterbar .right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.select,select,input[type=date]{
-  background:#fff;color:#1f2a44;border:1px solid var(--line);border-radius:9999px;
-  padding:9px 12px;min-height:42px;font-weight:600;max-width:100%
+.select, select, input[type=date], input[type=text], input[type=email]{
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  min-height: 44px;
+  font-weight: 500;
+  font-size: var(--fs-base);
+  max-width: 100%;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+
+.select:focus, select:focus, input[type=date]:focus, input[type=text]:focus, input[type=email]:focus{
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.select:hover, select:hover, input[type=date]:hover, input[type=text]:hover, input[type=email]:hover{
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
 }
 #filtersPanel{display:none;margin-top:10px}
 #filtersPanel .left{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
 /* ====== Table ====== */
-.table-wrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
-table{width:100%;border-collapse:collapse}
-thead th{
-  background:var(--primary-weak);color:#23325a;font-weight:700;border-bottom:1px solid var(--line);
-  padding:10px 12px;text-align:left;font-size:var(--fs-sm)
+.table-wrap{
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
 }
-td{padding:10px 12px;border-bottom:1px solid var(--line)}
-tbody tr:nth-child(even){background:#fafbff}
-td.center{text-align:center}
+
+.table-wrap:hover{
+  box-shadow: var(--shadow);
+}
+
+table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-base);
+}
+
+thead th{
+  background: linear-gradient(135deg, var(--primary-weak) 0%, var(--accent-weak) 100%);
+  color: var(--ink);
+  font-weight: 700;
+  border-bottom: 2px solid var(--primary);
+  padding: 16px 12px;
+  text-align: left;
+  font-size: var(--fs-sm);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+thead th:first-child{
+  border-radius: var(--radius-sm) 0 0 0;
+}
+
+thead th:last-child{
+  border-radius: 0 var(--radius-sm) 0 0;
+}
+
+td{
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  transition: var(--transition-fast);
+}
+
+tbody tr{
+  transition: var(--transition-fast);
+}
+
+tbody tr:nth-child(even){
+  background: rgba(59, 130, 246, 0.02);
+}
+
+tbody tr:hover{
+  background: var(--primary-weak);
+  transform: scale(1.01);
+}
+
+tbody tr:hover td{
+  color: var(--primary);
+  font-weight: 500;
+}
+
+td.center{
+  text-align: center;
+}
 
 .chip{
-  display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;
-  border:1px solid var(--line);background:#f2f4f8;color:#475569
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  transition: var(--transition-fast);
+  box-shadow: var(--shadow-sm);
 }
-.chip.ok{background:#dff7ea;border-color:#bfead4;color:var(--ok)}
-.chip.warn{background:#ffecec;border-color:#ffc9c9;color:var(--warn)}
+
+.chip::before{
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+.chip.ok{
+  background: linear-gradient(135deg, var(--ok-weak) 0%, #ecfdf5 100%);
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.chip.warn{
+  background: linear-gradient(135deg, var(--warn-weak) 0%, #fef2f2 100%);
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.chip:hover{
+  transform: scale(1.05);
+  box-shadow: var(--shadow);
+}
 
 /* ====== Dashboard actions (one line) ====== */
 .dash-actions{
@@ -157,9 +556,149 @@ td.center{text-align:center}
   margin-top:16px
 }
 
-/* ====== Responsive ====== */
-@media (max-width:768px){
-  .grid{grid-template-columns:1fr}
+/* ====== Responsive Design ====== */
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: var(--gap);
+  }
+  
+  .header-bar {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .brand {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .wrap {
+    padding: var(--pad);
+  }
+  
+  .card {
+    padding: clamp(16px, 4vw, 24px);
+  }
+  
+  .filterbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .filterbar .left,
+  .filterbar .right {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .dash-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .btn-danger-lg,
+  .btn-accent-lg {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .controls button {
+    width: 100%;
+  }
+  
+  table {
+    font-size: var(--fs-sm);
+  }
+  
+  thead th,
+  td {
+    padding: 8px 6px;
+  }
+  
+  .qr-placeholder {
+    width: clamp(80px, 20vw, 120px);
+    height: clamp(80px, 20vw, 120px);
+    font-size: clamp(24px, 6vw, 36px);
+  }
+}
+
+@media (max-width: 480px) {
+  .card h2 {
+    font-size: var(--fs-h3);
+    text-align: center;
+  }
+  
+  .scan-drop {
+    aspect-ratio: 4/3;
+  }
+  
+  .table-wrap {
+    overflow-x: auto;
+  }
+  
+  table {
+    min-width: 600px;
+  }
+  
+  .chip {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+}
+
+/* ====== Dark Mode Support ====== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-solid: #0f172a;
+    --surface: #1e293b;
+    --surface-elevated: #334155;
+    --ink: #f1f5f9;
+    --muted: #94a3b8;
+    --line: #334155;
+  }
+  
+  .scan-drop {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  }
+  
+  tbody tr:nth-child(even) {
+    background: rgba(59, 130, 246, 0.05);
+  }
+}
+
+/* ====== Print Styles ====== */
+@media print {
+  header,
+  .controls,
+  .filterbar,
+  .dash-actions,
+  button {
+    display: none !important;
+  }
+  
+  .card {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+  
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
 }
 
 
@@ -392,6 +931,11 @@ a.btn:active, button:active {
       </div>
 
       <div class="subtitle" id="overallSummary" style="margin-top:8px; text-align:center;">Overall —</div>
+      
+      <!-- Network Status Indicator -->
+      <div id="networkStatus" class="status-indicator online" style="margin-top:12px; justify-content:center;">
+        <span id="networkStatusText">Online</span>
+      </div>
 
       <div id="historySection" style="margin-top:14px;">
         <h2 style="font-size:var(--fs-h2); margin:10px 0 8px;">History (Recent Days)</h2>
@@ -411,7 +955,59 @@ a.btn:active, button:active {
 </main>
 
 <!-- Toast -->
-<div class="toast" id="toast" style="display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 14px; border-radius:999px; font-weight:700;"></div>
+<!-- Enhanced Toast with better styling -->
+<div class="toast" id="toast" style="display:none; position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--surface); color:var(--ink); padding:12px 20px; border-radius:var(--radius); font-weight:600; box-shadow:var(--shadow-xl); border:1px solid var(--line); backdrop-filter:blur(8px); z-index:10000; transition:var(--transition); min-width:200px; text-align:center;"></div>
+
+<!-- Loading Spinner Styles -->
+<style>
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Enhanced status indicators */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.status-indicator.online {
+  color: var(--ok);
+  border-color: var(--ok);
+  background: var(--ok-weak);
+}
+
+.status-indicator.offline {
+  color: var(--warn);
+  border-color: var(--warn);
+  background: var(--warn-weak);
+}
+
+.status-indicator::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s infinite;
+}
+</style>
 
 <!-- 🎵 Custom beep hook -->
 <audio id="beepAudio" preload="auto" src="Tone.mp3"></audio>
@@ -1470,41 +2066,68 @@ function renderDashboard() {
    History (Recent Dates)
 =========================== */
 function renderHistory(limit = 10){
-  if(!historyBody) return;
-  historyBody.innerHTML = "";
-
-  const byDate = logRows.reduce((acc, r) => {
-    acc[r.date] = acc[r.date] || { present:0, absent:0, total:0 };
-    if (r.status === "Present") acc[r.date].present++;
-    if (r.status === "Absent") acc[r.date].absent++;
-    acc[r.date].total++;
-    return acc;
-  }, {});
-
-  const dates = Object.keys(byDate).sort((a,b)=> b.localeCompare(a)).slice(0, limit);
-  if (!dates.length){
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="4" class="center" style="color:var(--muted)">No history found</td>`;
-    historyBody.appendChild(tr);
+  const historyBody = DOM.historyBody || $("#historyBody");
+  if(!historyBody) {
+    Logger.warn("History body element not found");
     return;
   }
+  
+  try {
+    historyBody.innerHTML = "";
 
-  dates.forEach(d=>{
-    const rec = byDate[d];
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${d}</td><td>${rec.present}</td><td>${rec.absent}</td><td>${rec.total}</td>`;
-    historyBody.appendChild(tr);
-  });
+    const byDate = logRows.reduce((acc, r) => {
+      acc[r.date] = acc[r.date] || { present:0, absent:0, total:0 };
+      if (r.status === "Present") acc[r.date].present++;
+      if (r.status === "Absent") acc[r.date].absent++;
+      acc[r.date].total++;
+      return acc;
+    }, {});
+
+    const dates = Object.keys(byDate).sort((a,b)=> b.localeCompare(a)).slice(0, limit);
+    if (!dates.length){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="4" class="center" style="color:var(--muted)">No history found</td>`;
+      historyBody.appendChild(tr);
+      return;
+    }
+
+    // Use DocumentFragment for better performance
+    const fragment = document.createDocumentFragment();
+    dates.forEach(d=>{
+      const rec = byDate[d];
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${d}</td><td>${rec.present}</td><td>${rec.absent}</td><td>${rec.total}</td>`;
+      fragment.appendChild(tr);
+    });
+    historyBody.appendChild(fragment);
+    
+    Logger.debug(`Rendered history for ${dates.length} dates`);
+  } catch (error) {
+    Logger.error("Error rendering history", { error: error.message });
+    if (historyBody) {
+      historyBody.innerHTML = '<tr><td colspan="4" class="center" style="color:var(--muted)">Error loading history</td></tr>';
+    }
+  }
 }
 
 /* ===========================
    Table + Filters
 =========================== */
-function getFilters(){ return {
-  cls: filterClass.value, status: $("#filterStatus").value,
-  from: $("#filterDateFrom").value, to: $("#filterDateTo").value
-};}
-function passFilters(r,f){
+function getFilters(){ 
+  const filterClass = DOM.filterClass || $("#filterClass");
+  const filterStatus = DOM.filterStatus || $("#filterStatus");
+  const filterDateFrom = DOM.filterDateFrom || $("#filterDateFrom");
+  const filterDateTo = DOM.filterDateTo || $("#filterDateTo");
+  
+  return {
+    cls: filterClass?.value || "", 
+    status: filterStatus?.value || "",
+    from: filterDateFrom?.value || "", 
+    to: filterDateTo?.value || ""
+  };
+}
+
+function passFilters(r, f){
   if(f.cls && r.class !== f.cls) return false;
   if(f.status && r.status !== f.status) return false;
   if(f.from && r.date < f.from) return false;
@@ -1692,19 +2315,42 @@ function appendLogEntry(entry) {
 
 /* ---- Double-scan gate ---- */
 function setPendingUI(active, type="pending"){
-  if(!scanTile) return;
-  scanTile.classList.remove("border-pending","border-ok","border-warn");
-  if(!active) return;
-  if(type==="pending") scanTile.classList.add("border-pending");
-  else if(type==="ok") scanTile.classList.add("border-ok");
-  else if(type==="warn") scanTile.classList.add("border-warn");
+  try {
+    const scanTile = DOM.scanTile || document.getElementById("scanTile");
+    if(!scanTile) {
+      Logger.warn("Scan tile element not found for pending UI");
+      return;
+    }
+    
+    scanTile.classList.remove("border-pending", "border-ok", "border-warn");
+    
+    if(!active) return;
+    
+    if(type === "pending") scanTile.classList.add("border-pending");
+    else if(type === "ok") scanTile.classList.add("border-ok");
+    else if(type === "warn") scanTile.classList.add("border-warn");
+    
+    Logger.debug(`Set pending UI: ${type}`, { active });
+  } catch (error) {
+    Logger.error("Error setting pending UI", { error: error.message, active, type });
+  }
 }
 function preparePending(code, msgText){
-  pendingCode = code;
-  pendingTime = Date.now();
-  setPendingUI(true,"pending");
-  $("#lastScanMsg").innerHTML = `<span style="color:#fb923c; font-weight:800;">${msgText}</span>`;
-  showToast("Scan again to confirm");
+  try {
+    pendingCode = code;
+    pendingTime = Date.now();
+    setPendingUI(true, "pending");
+    
+    const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+    if (lastScanMsg) {
+      lastScanMsg.innerHTML = `<span style="color:#fb923c; font-weight:800;">${Security.sanitizeHTML(msgText)}</span>`;
+    }
+    
+    showToast("🔄 Scan again to confirm", "#fb923c");
+    Logger.debug("Prepared pending scan", { code, message: msgText });
+  } catch (error) {
+    Logger.error("Error preparing pending scan", { error: error.message, code });
+  }
 }
 function clearPending(){
   pendingCode = null;
@@ -1719,7 +2365,10 @@ function handleConfirmed(id){
 
   if(!person){
     setPendingUI(true,"warn");
-    $("#lastScanMsg").innerHTML = `<span style="color:#ef4444; font-weight:800;">Unknown QR scanned</span>`;
+    const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+    if (lastScanMsg) {
+      lastScanMsg.innerHTML = `<span style="color:#ef4444; font-weight:800;">❌ Unknown QR scanned</span>`;
+    }
     playBeep(); // guarded
     speakText("Unknown QR code scanned");
     clearPending();
@@ -1728,7 +2377,10 @@ function handleConfirmed(id){
 
   if(alreadyMarkedToday(id)){
     setPendingUI(true,"ok"); // green as you wanted
-    $("#lastScanMsg").innerHTML = `<span style="color:#16a34a; font-weight:800;">Already Scanned: ${person.name} (Class ${person.class})</span>`;
+    const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+    if (lastScanMsg) {
+      lastScanMsg.innerHTML = `<span style="color:#16a34a; font-weight:800;">✅ Already Scanned: ${Security.sanitizeHTML(person.name)} (Class ${Security.sanitizeHTML(person.class)})</span>`;
+    }
     playBeep();
     speakText(`Already scanned ${person.name}`);
     clearPending();
@@ -1738,7 +2390,10 @@ function handleConfirmed(id){
   // ✅ Mark Present
   appendLogEntry({ ...base, status:"Present" });
   setPendingUI(true,"ok");
-  $("#lastScanMsg").innerHTML = `<span style="color:#34d399; font-weight:800;">Marked Present: ${person.name} (Class ${person.class})</span>`;
+  const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+  if (lastScanMsg) {
+    lastScanMsg.innerHTML = `<span style="color:#34d399; font-weight:800;">✅ Marked Present: ${Security.sanitizeHTML(person.name)} (Class ${Security.sanitizeHTML(person.class)})</span>`;
+  }
   playBeep();
   speakText(`${person.name} Present`);
 
@@ -1760,9 +2415,12 @@ function onScan(codeRaw) {
     }
     
     if (!validateStudentId(code)) {
-      console.warn("Invalid QR code format:", code);
+      Logger.warn("Invalid QR code format", { code });
       setPendingUI(true, "warn");
-      $("#lastScanMsg").innerHTML = `<span style="color:#ef4444; font-weight:800;">Invalid QR Code Format</span>`;
+      const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+      if (lastScanMsg) {
+        lastScanMsg.innerHTML = `<span style="color:#ef4444; font-weight:800;">❌ Invalid QR Code Format</span>`;
+      }
       playBeep();
       speakText("Invalid QR code format");
       clearPending();
@@ -1779,9 +2437,12 @@ function onScan(codeRaw) {
     if (!pendingCode) {
       const person = studentMap.get(code);
       if (!person) {
-        console.warn("Unknown student ID:", code);
+        Logger.warn("Unknown student ID", { code });
         setPendingUI(true, "warn");
-        $("#lastScanMsg").innerHTML = `<span style="color:#ef4444; font-weight:800;">Unknown Student: ${code}</span>`;
+        const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+        if (lastScanMsg) {
+          lastScanMsg.innerHTML = `<span style="color:#ef4444; font-weight:800;">❌ Unknown Student: ${Security.sanitizeHTML(code)}</span>`;
+        }
         playBeep();
         speakText("Unknown student");
         clearPending();
@@ -1800,9 +2461,12 @@ function onScan(codeRaw) {
       // New code replaces pending
       const person = studentMap.get(code);
       if (!person) {
-        console.warn("Unknown student ID in second scan:", code);
+        Logger.warn("Unknown student ID in second scan", { code });
         setPendingUI(true, "warn");
-        $("#lastScanMsg").innerHTML = `<span style="color:#ef4444; font-weight:800;">Unknown Student: ${code}</span>`;
+        const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+        if (lastScanMsg) {
+          lastScanMsg.innerHTML = `<span style="color:#ef4444; font-weight:800;">❌ Unknown Student: ${Security.sanitizeHTML(code)}</span>`;
+        }
         playBeep();
         speakText("Unknown student");
         clearPending();
@@ -2056,45 +2720,119 @@ async function finalizeDayAndDownload() {
 =========================== */
 let codeReader=null; let currentDeviceId=null;
 async function listCameras(){
-  const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
-  if(!cameraSelect) return;
-  cameraSelect.innerHTML="";
-  devices.forEach((d,i)=>{ const opt=document.createElement("option"); opt.value=d.deviceId; opt.textContent=d.label||`Camera ${i+1}`; cameraSelect.appendChild(opt); });
-  if(devices[0]) cameraSelect.value=devices[0].deviceId;
+  try {
+    const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+    const cameraSelect = DOM.cameraSelect || $("#cameraSelect");
+    
+    if(!cameraSelect) {
+      Logger.warn("Camera select element not found");
+      return;
+    }
+    
+    cameraSelect.innerHTML = "";
+    
+    if (devices.length === 0) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "No cameras found";
+      cameraSelect.appendChild(opt);
+      Logger.warn("No camera devices found");
+      return;
+    }
+    
+    devices.forEach((d, i) => { 
+      const opt = document.createElement("option"); 
+      opt.value = d.deviceId; 
+      opt.textContent = d.label || `Camera ${i + 1}`; 
+      cameraSelect.appendChild(opt); 
+    });
+    
+    if(devices[0]) {
+      cameraSelect.value = devices[0].deviceId;
+    }
+    
+    Logger.info(`Found ${devices.length} camera devices`);
+  } catch (error) {
+    Logger.error("Error listing cameras", { error: error.message });
+    const cameraSelect = DOM.cameraSelect || $("#cameraSelect");
+    if (cameraSelect) {
+      cameraSelect.innerHTML = '<option value="">Camera error</option>';
+    }
+  }
 }
 async function startScanner(){
-  if(codeReader){ await stopScanner(); }
+  try {
+    if(codeReader){ 
+      await stopScanner(); 
+    }
 
-  // Hints: prefer QR + try harder
-  const hints = new Map();
-  if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-  }
-  codeReader = new ZXing.BrowserMultiFormatReader(hints);
+    // Hints: prefer QR + try harder
+    const hints = new Map();
+    if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    }
+    codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
-  currentDeviceId = cameraSelect?.value || undefined;
-  $("#startBtn").disabled=true; 
-  $("#stopBtn").disabled=false;
-  try{
-    await codeReader.decodeFromVideoDevice(currentDeviceId,"video",(res,err)=>{
-      if(res && res.text){ onScan(res.text); }
+    const cameraSelect = DOM.cameraSelect || $("#cameraSelect");
+    currentDeviceId = cameraSelect?.value || undefined;
+    
+    const startBtn = DOM.startBtn || $("#startBtn");
+    const stopBtn = DOM.stopBtn || $("#stopBtn");
+    
+    if (startBtn) startBtn.disabled = true;
+    if (stopBtn) stopBtn.disabled = false;
+    
+    LoadingStates.show("Starting camera...");
+    
+    await codeReader.decodeFromVideoDevice(currentDeviceId, "video", (res, err) => {
+      if(res && res.text){ 
+        onScan(res.text); 
+      }
+      if(err && err.name !== 'NotFoundException') {
+        Logger.warn("Scanner decode error", { error: err.message });
+      }
     });
+    
     setScanActive(true);
-    showToast("Camera started");
-  }catch(e){
-    console.error(e); showToast("Could not start camera");
-    $("#startBtn").disabled=false; 
-    $("#stopBtn").disabled=true;
+    LoadingStates.hide();
+    showToast("✅ Camera started successfully", "#22c55e");
+    Logger.info("Camera scanner started", { deviceId: currentDeviceId });
+    
+  } catch(e) {
+    Logger.error("Failed to start camera", { error: e.message });
+    LoadingStates.hide();
+    showToast("❌ Could not start camera", "#ef4444");
+    
+    const startBtn = DOM.startBtn || $("#startBtn");
+    const stopBtn = DOM.stopBtn || $("#stopBtn");
+    
+    if (startBtn) startBtn.disabled = false;
+    if (stopBtn) stopBtn.disabled = true;
     setScanActive(false);
   }
 }
 async function stopScanner(){
-  if(codeReader){ await codeReader.reset(); codeReader=null; }
-  $("#startBtn").disabled=false; 
-  $("#stopBtn").disabled=true;
-  setScanActive(false);
-  showToast("Camera stopped");
+  try {
+    if(codeReader){ 
+      await codeReader.reset(); 
+      codeReader = null; 
+    }
+    
+    const startBtn = DOM.startBtn || $("#startBtn");
+    const stopBtn = DOM.stopBtn || $("#stopBtn");
+    
+    if (startBtn) startBtn.disabled = false;
+    if (stopBtn) stopBtn.disabled = true;
+    
+    setScanActive(false);
+    showToast("📷 Camera stopped", "#6b7280");
+    Logger.info("Camera scanner stopped");
+    
+  } catch (error) {
+    Logger.error("Error stopping scanner", { error: error.message });
+    showToast("❌ Error stopping camera", "#ef4444");
+  }
 }
 
 /* ===========================
@@ -2132,10 +2870,27 @@ document.getElementById("toggleFilters").addEventListener("click", ()=>{
 });
 
 function setScanActive(active){
-  const video = document.getElementById("video");
-  if(!video || !scanTile) return;
-  if(active){ scanTile.classList.add("scan-active"); video.style.display="block"; }
-  else{ scanTile.classList.remove("scan-active"); video.style.display="none"; }
+  try {
+    const video = document.getElementById("video");
+    const scanTile = DOM.scanTile || document.getElementById("scanTile");
+    
+    if(!video || !scanTile) {
+      Logger.warn("Video or scan tile element not found");
+      return;
+    }
+    
+    if(active){ 
+      scanTile.classList.add("scan-active"); 
+      video.style.display = "block"; 
+      Logger.debug("Scanner UI activated");
+    } else { 
+      scanTile.classList.remove("scan-active"); 
+      video.style.display = "none"; 
+      Logger.debug("Scanner UI deactivated");
+    }
+  } catch (error) {
+    Logger.error("Error setting scan active state", { error: error.message, active });
+  }
 }
 
 /* ===========================
@@ -2501,15 +3256,84 @@ function autoResetDaily(){
 }
 
 /* ===========================
+   Network Monitoring
+=========================== */
+function updateNetworkStatus() {
+  try {
+    const networkStatus = document.getElementById('networkStatus');
+    const networkStatusText = document.getElementById('networkStatusText');
+    
+    if (!networkStatus || !networkStatusText) return;
+    
+    const isOnline = navigator.onLine;
+    
+    if (isOnline) {
+      networkStatus.className = 'status-indicator online';
+      networkStatusText.textContent = 'Online';
+    } else {
+      networkStatus.className = 'status-indicator offline';
+      networkStatusText.textContent = 'Offline';
+    }
+    
+    Logger.debug(`Network status: ${isOnline ? 'Online' : 'Offline'}`);
+  } catch (error) {
+    Logger.error("Error updating network status", { error: error.message });
+  }
+}
+
+// Network event listeners
+window.addEventListener('online', () => {
+  updateNetworkStatus();
+  showToast("🟢 Back online", "#22c55e");
+  Logger.info("Network connection restored");
+});
+
+window.addEventListener('offline', () => {
+  updateNetworkStatus();
+  showToast("🔴 Connection lost - Working offline", "#f59e0b");
+  Logger.warn("Network connection lost");
+});
+
+/* ===========================
+   Enhanced Error Handling
+=========================== */
+window.addEventListener('error', (event) => {
+  Logger.error("Global error caught", {
+    message: event.message,
+    filename: event.filename,
+    line: event.lineno,
+    column: event.colno,
+    stack: event.error?.stack
+  });
+  
+  showToast("❌ An error occurred", "#ef4444");
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  Logger.error("Unhandled promise rejection", {
+    reason: event.reason,
+    promise: event.promise
+  });
+  
+  showToast("❌ Operation failed", "#ef4444");
+  event.preventDefault();
+});
+
+/* ===========================
    Init - Enhanced initialization
 =========================== */
 (async function init() {
   try {
+    Logger.info("Starting application initialization");
+    
     // Initialize DOM references first
     initializeDOM();
     
     // Setup event listeners
     setupEventListeners();
+    
+    // Initialize network monitoring
+    updateNetworkStatus();
     
     // Populate class filter
     populateClassFilter();
@@ -2524,17 +3348,41 @@ function autoResetDaily(){
     try {
       await listCameras();
     } catch (e) {
-      console.warn("Camera initialization failed:", e);
+      Logger.warn("Camera initialization failed", { error: e.message });
+      showToast("⚠️ Camera not available", "#f59e0b");
     }
     
     // Cleanup old backups
     cleanupBackups();
     
-    console.log("Application initialized successfully");
+    // Performance monitoring
+    if (performance.mark) {
+      performance.mark('app-init-complete');
+    }
+    
+    Logger.info("Application initialized successfully");
+    showToast("✅ Application ready", "#22c55e");
     
   } catch (error) {
-    console.error("Initialization failed:", error);
-    showToast("Application initialization failed", "#ef4444");
+    Logger.error("Initialization failed", { error: error.message, stack: error.stack });
+    showToast("❌ Application initialization failed", "#ef4444");
+    
+    // Try to show a basic error message even if toast fails
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ef4444;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      z-index: 10000;
+    `;
+    errorDiv.textContent = 'Application failed to initialize. Please refresh the page.';
+    document.body.appendChild(errorDiv);
   }
 })();
 </script>

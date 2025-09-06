@@ -16,21 +16,80 @@ const PDFDocument = require("pdfkit");
 require("dotenv").config();
 
 const app = express();
+
+// Trust proxy for Render deployment
+app.set('trust proxy', 1);
+
 app.use(express.static(path.join(__dirname, "public")));
 
 
 /* ========== Config (.env) ========== */
 const PORT        = process.env.PORT || 3000;
-const SMTP_USER   = process.env.SMTP_USER || "saamarthyaacademy24@gmail.com"; // your Gmail
-const SMTP_PASS   = process.env.SMTP_PASS || "hbrc ljci pppl hzcr"; // Gmail App Password  
+const SMTP_USER   = process.env.SMTP_USER; // Remove default fallback for security
+const SMTP_PASS   = process.env.SMTP_PASS; // Remove default fallback for security
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const DRY_RUN     = String(process.env.DRY_RUN || "false").toLowerCase() === "true";
+const NODE_ENV    = process.env.NODE_ENV || "development";
 
 const REPORT_DIR = path.join(__dirname, "reports");
 fs.mkdirSync(REPORT_DIR, { recursive: true });
 
 /* ========== Middleware ========== */
 app.use(cors({ origin: CORS_ORIGIN === "*" ? true : CORS_ORIGIN }));
+
+// Security headers
+app.use((req, res, next) => {
+  // Prevent XSS attacks
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Content Security Policy
+  res.setHeader('Content-Security-Policy', 
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data: blob:; " +
+    "font-src 'self'; " +
+    "connect-src 'self'; " +
+    "media-src 'self' blob:;"
+  );
+  
+  next();
+});
+
+// Rate limiting middleware
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 20;
+
+function rateLimit(req, res, next) {
+  const clientId = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  
+  if (!rateLimitMap.has(clientId)) {
+    rateLimitMap.set(clientId, []);
+  }
+  
+  const requests = rateLimitMap.get(clientId);
+  const validRequests = requests.filter(time => now - time < RATE_LIMIT_WINDOW);
+  
+  if (validRequests.length >= MAX_REQUESTS_PER_WINDOW) {
+    return res.status(429).json({ 
+      ok: false, 
+      message: "Too many requests. Please try again later." 
+    });
+  }
+  
+  validRequests.push(now);
+  rateLimitMap.set(clientId, validRequests);
+  next();
+}
+
+// Apply rate limiting to API routes
+app.use('/api', rateLimit);
+
 app.use(express.json({ limit: "1mb" }));
 
 /* ========== Utilities ========== */
@@ -44,21 +103,60 @@ function formatIST(isoOrDate = new Date()){
   }).format(d);
 }
 
-/* ========== Mailer ========== */
+/* ========== Enhanced Mailer Configuration ========== */
 let transporter = null;
 if (!DRY_RUN) {
   if (!SMTP_USER || !SMTP_PASS) {
-    console.log("⚠️  Set SMTP_USER and SMTP_PASS in .env (or use DRY_RUN=true).");
+    logger.warn("SMTP credentials not configured. Set SMTP_USER and SMTP_PASS in .env (or use DRY_RUN=true).");
   } else {
-    transporter = nodemailer.createTransport({
+    transporter = nodemailer.createTransporter({
       host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
+      port: 587, // Use STARTTLS instead of SSL for better compatibility
+      secure: false, // Use STARTTLS
+      requireTLS: true,
+      auth: { 
+        user: SMTP_USER, 
+        pass: SMTP_PASS 
+      },
+      // Enhanced configuration for better deliverability
+      pool: true, // Use connection pooling
+      maxConnections: 5,
+      maxMessages: 100,
+      rateDelta: 1000, // 1 second between messages
+      rateLimit: 5, // Max 5 messages per rateDelta
+      // Timeout configurations
+      connectionTimeout: 30000, // 30 seconds
+      greetingTimeout: 30000,
+      socketTimeout: 30000,
+      // TLS options
+      tls: {
+        rejectUnauthorized: true,
+        minVersion: 'TLSv1.2'
+      },
+      // Debug for development
+      debug: NODE_ENV === 'development',
+      logger: NODE_ENV === 'development'
     });
-    transporter.verify()
-      .then(() => console.log("✅ SMTP ready"))
-      .catch(err => console.log("⚠️ SMTP verify failed:", err?.message || err));
+    
+    // Enhanced SMTP verification with retry logic
+    const verifyTransporter = async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          await transporter.verify();
+          logger.success("SMTP connection verified and ready");
+          return;
+        } catch (err) {
+          logger.warn(`SMTP verification attempt ${i + 1} failed:`, err.message);
+          if (i === retries - 1) {
+            logger.error("SMTP verification failed after all retries. Email sending may not work.");
+          } else {
+            await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1))); // Exponential backoff
+          }
+        }
+      }
+    };
+    
+    verifyTransporter();
   }
 }
 
@@ -157,15 +255,34 @@ app.post("/api/send-email", async (req, res) => {
       console.log("📧 [DRY_RUN] Would send to:", parentEmail, "|", subject);
       emailSent = true;
     } else {
-      const info = await transporter.sendMail({
-        from: `"Saamarthya Academy" <${SMTP_USER}>`,
-        to: parentEmail,
-        subject,
-        text,
-        html,
-      });
-      console.log("✅ Email sent:", info.messageId || info.response);
-      emailSent = true;
+      try {
+        emailInfo = await transporter.sendMail({
+          from: `"Saamarthya Academy" <${SMTP_USER}>`,
+          to: sanitizedParentEmail,
+          subject,
+          text,
+          html,
+          // Add headers for better deliverability
+          headers: {
+            'X-Mailer': 'Saamarthya Academy Attendance System',
+            'X-Priority': '3'
+          }
+        });
+        
+        logger.success("Email sent successfully", { 
+          messageId: emailInfo.messageId, 
+          to: sanitizedParentEmail,
+          studentId: sanitizedStudentId 
+        });
+        emailSent = true;
+      } catch (emailError) {
+        logger.error("Failed to send email", emailError);
+        return res.status(500).json({ 
+          ok: false, 
+          message: "Failed to send email",
+          error: emailError.message 
+        });
+      }
     }
 
     res.json({ ok: true, emailSent });
@@ -222,10 +339,16 @@ app.post("/api/send-pdf-email", async (req, res) => {
         const info = await transporter.sendMail({
           from: `"Saamarthya Academy" <${SMTP_USER}>`,
           to: parentEmail,
+          replyTo: SMTP_USER,
           subject: "Monthly Attendance Report",
           text: "Attached is your child's monthly attendance report.\n\nBest regards,\nSaamarthya Academy",
           html: `<p>Attached is your child's monthly attendance report.</p><p>Best regards,<br><strong>Saamarthya Academy</strong></p>`,
           attachments: [{ filename: path.basename(pdfPath), path: pdfPath }],
+          headers: {
+            'X-Mailer': 'Saamarthya Academy Attendance System v1.0',
+            'X-Priority': '3',
+            'List-Unsubscribe': `<mailto:${SMTP_USER}?subject=Unsubscribe>`
+          }
         });
         console.log("✅ Report email sent:", info.messageId || info.response);
         emailSent = true;
@@ -274,9 +397,15 @@ app.post("/api/send-absent-emails", async (req, res) => {
           const info = await transporter.sendMail({
             from: `"Saamarthya Academy" <${SMTP_USER}>`,
             to: parentEmail,
+            replyTo: SMTP_USER,
             subject,
             text,
             html,
+            headers: {
+              'X-Mailer': 'Saamarthya Academy Attendance System v1.0',
+              'X-Priority': '3',
+              'List-Unsubscribe': `<mailto:${SMTP_USER}?subject=Unsubscribe>`
+            }
           });
           console.log("✅ Absent email sent:", info.messageId || info.response);
           results.push({ studentId, ok: true });
@@ -297,8 +426,63 @@ app.post("/api/send-absent-emails", async (req, res) => {
   }
 });
 
-/* ========== Start ========== */
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`   DRY_RUN=${DRY_RUN ? "true" : "false"} (set in .env)`);
+// Health check endpoint for Render and other platforms
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    version: '1.0.0'
+  });
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  process.exit(0);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+/* ========== Start Server ========== */
+const server = app.listen(PORT, '0.0.0.0', () => {
+  logger.success(`Server running on port ${PORT}`);
+  logger.info(`Environment: ${NODE_ENV}`);
+  logger.info(`DRY_RUN: ${DRY_RUN ? "enabled" : "disabled"}`);
+  logger.info(`SMTP configured: ${SMTP_USER ? "yes" : "no"}`);
+  
+  // Log server configuration for debugging
+  if (NODE_ENV === 'development') {
+    logger.info('Server configuration:', {
+      port: PORT,
+      corsOrigin: CORS_ORIGIN,
+      trustProxy: app.get('trust proxy'),
+      rateLimitWindow: RATE_LIMIT_WINDOW,
+      maxRequestsPerWindow: MAX_REQUESTS_PER_WINDOW
+    });
+  }
+});
+
+// Handle server errors
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    logger.error(`Port ${PORT} is already in use`);
+  } else {
+    logger.error('Server error:', error);
+  }
+  process.exit(1);
 });
