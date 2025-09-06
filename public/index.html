@@ -380,6 +380,8 @@ button.ghost.btn-hover-red:hover{
   font-weight: 800;
   box-shadow: var(--shadow-lg);
   animation: pulse 2s infinite;
+  overflow: hidden;
+  overflow-wrap: break-word;
 }
 
 @keyframes pulse {
@@ -853,7 +855,7 @@ a.btn:active, button:active {
       <h2>Scan Student QR Code</h2>
 
       <div id="scanTile" class="scan-drop">
-        <div class="qr-placeholder">🔲</div>
+        <div class="qr-placeholder"><img src="camera.svg" width="60" height="60" alt=""></div>
         <br>
         <input type="file" id="fileInput" accept="image/*" class="file-btn" />
         <video id="video" playsinline style="display:none; width:100%; height:100%; border-radius:14px;"></video>
