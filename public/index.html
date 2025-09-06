@@ -161,6 +161,131 @@ td.center{text-align:center}
 @media (max-width:768px){
   .grid{grid-template-columns:1fr}
 }
+
+
+
+/* =========================
+   NEW: Page open animation
+   (append this at the end of your stylesheet)
+   ========================= */
+:root{
+  --page-enter-duration: .6s;
+  --page-enter-ease: cubic-bezier(.16,.84,.44,1);
+  --btn-hover-scale: 1.035;
+  --btn-hover-shadow: 0 8px 30px rgba(31,42,68,.12);
+  --qr-logo-size: clamp(56px, 8vw, 96px);
+}
+
+/* initial invisible state -> animate in */
+body{
+  opacity: 0;
+  transform: translateY(8px) scale(.998);
+  will-change: opacity, transform;
+  animation: pageEnter var(--page-enter-duration) var(--page-enter-ease) .08s forwards;
+}
+
+@keyframes pageEnter{
+  to{
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* small, subtle stagger for major containers (optional; non-invasive) */
+.wrap, .card, header, .grid {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: fadeUp .45s ease-out .14s forwards;
+}
+@keyframes fadeUp{
+  to{ opacity:1; transform:translateY(0); }
+}
+
+/* =========================
+   NEW: Better button hover ("good habour")
+   - keeps your current classes; only adds hover/focus polish
+   ========================= */
+a.btn, button{
+  transition:
+    transform 180ms var(--page-enter-ease),
+    box-shadow 220ms var(--page-enter-ease),
+    background-color 160ms linear,
+    border-color 160ms linear;
+  will-change: transform, box-shadow;
+}
+
+/* hover + focus-visible */
+a.btn:hover, button:hover,
+a.btn:focus-visible, button:focus-visible {
+  transform: translateY(-3px) scale(var(--btn-hover-scale));
+  box-shadow: var(--btn-hover-shadow);
+  z-index: 20;
+  outline: none; /* keep focus-visible for accessibility below */
+}
+
+/* accessible focus style */
+a.btn:focus-visible, button:focus-visible {
+  box-shadow: 0 0 0 4px rgba(59,91,255,.12), var(--btn-hover-shadow);
+}
+
+/* subtle active press */
+a.btn:active, button:active {
+  transform: translateY(0) scale(0.995);
+  box-shadow: 0 4px 14px rgba(31,42,68,.08);
+}
+
+/* small variant polish */
+.btn-sm:hover { transform: translateY(-2px) scale(1.02) }
+
+/* =========================
+   NEW: QR logo styles + example SVG markup
+   - Use a simple container with class .qr-logo
+   - Swap colors, size, or replace the inline SVG with any exported svg/png
+   ========================= */
+.qr-logo{
+  display:inline-grid;
+  place-items:center;
+  width:var(--qr-logo-size);
+  height:var(--qr-logo-size);
+  border-radius:14px;
+  background: linear-gradient(135deg,#e8efff 0%, #fff5f7 100%);
+  box-shadow: 0 8px 30px rgba(15,23,42,.06), inset 0 1px 0 rgba(255,255,255,.6);
+  border:1px solid rgba(31,42,68,.06);
+  padding:8px;
+}
+
+/* small inner frame to style an SVG/logo inside */
+.qr-logo svg { width: calc(var(--qr-logo-size) - 18px); height: calc(var(--qr-logo-size) - 18px); display:block; }
+
+/* optional: animated scan line when scanner active */
+.qr-logo.scan-active{
+  position:relative;
+  overflow:hidden;
+}
+.qr-logo.scan-active::after{
+  content:"";
+  position:absolute;left:-40%;right:-40%;height:6px;
+  top:50%;
+  transform:translateY(-50%) rotate(-6deg);
+  background: linear-gradient(90deg, transparent, rgba(255,106,106,.14), transparent);
+  animation: scanLine 1.6s linear infinite;
+  filter: blur(.5px);
+}
+@keyframes scanLine{
+  0%{ transform: translateX(-100%) translateY(-50%) rotate(-6deg); opacity:.0 }
+  20%{ opacity:.8 }
+  100%{ transform: translateX(200%) translateY(-50%) rotate(-6deg); opacity:.0 }
+}
+
+/* =========================
+   NEW: tiny utility helpers (keeps CSS well-arranged)
+   ========================= */
+.u-center { display:flex; align-items:center; justify-content:center; }
+.u-clickable { cursor:pointer; }
+
+
+
+
 </style>
 </head>
 <body>
