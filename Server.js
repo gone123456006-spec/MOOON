@@ -122,7 +122,7 @@ Saamarthya Academy`;
       at Saamarthya Academy.
     </p>
     <p style="margin:12px 0 0 0;"><strong>Date:</strong> ${dayStr}</p>
-    <p style="margin:12px 0 0 0;">If this is unexpected, please contact the school administration.</p>
+    <p style="margin:12px 0 0 0;">If this is unexpected, please contact the institution administration.</p>
     <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0" />
     <p style="margin:0">Best regards,</p>
     <p style="margin:0"><strong>Saamarthya Academy</strong></p>

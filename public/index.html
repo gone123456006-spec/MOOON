@@ -1034,7 +1034,7 @@ const students = {
   "SAH25201": { name:"Aarav Kumar", class:"8",  phone:"6204020655", email:"Shyamroaster@gmail.com" },
   "SAH25000": { name:"Anshul Kumar", class:"8",  phone:"6204020655", email:"Gone123456006@gmail.com" },
 
-  "SAJ25013": { name:"Kritika Arya", class:"10", phone:"7870454422", email:"Shyamroaster@gmail.com" },
+  "SAJ25013": { name:"Kritika Arya", class:"10", phone:"7870454422", email:"jitendaraannu@gmail.com" },
   "SAJ25012": { name:"Shweta Kumari", class:"10", phone:"8873238428", email:"ajaybhagat1880@gmail.com" },
   "SAJ25011": { name:"Divyanshu Kumar", class:"10", phone:"8789580780", email:"divyanshukumar2323k@gmail.com" },
   "SAJ25016": { name:"Arnav", class:"10", phone:"9934490207", email:"rajnishbharti84@gmail.com" },
@@ -1048,7 +1048,7 @@ const students = {
   "SAN25015": { name:"Bharat Kumar Adarsh", class:"9", phone:"9122609590", email:"nitya4world@gmail.com" },
   "SAN25010": { name:"Tripti Kumari", class:"9", phone:"8789832449", email:"niketakumari0416@gmail.com" },
   "SAN25013": { name:"Anamika", class:"9", phone:"9508400448", email:"Sinha2nitesh@gmail.com" },
-  "SAN25014": { name:"Saumya Chauhan", class:"9", phone:"6205053029", email:"Hmvishwajeetkumar2002@gmail.com" },
+  "SAN25014": { name:"Saumya Chauhan", class:"9", phone:"6205053029", email:"arvindkmariur12324@gmail.com" },
   "SAN25017": { name:"Kumari Kamya", class:"9", phone:"6204020655", email:"kamini27285@gmail.com" },
 
 "SAE25045": { name:"Khushi Kumari", class:"11", phone:"8877949381", email:"Hmvishwajeetkumar2002@gmail.com" },
@@ -1893,32 +1893,114 @@ const Security = {
   }
 };
 
-/* 🎵 Customizable beep */
+/* 🎵 Customizable beep + professional female voice */
 const beepEl = document.getElementById("beepAudio");
+
+/* --- Beep playback (unchanged) --- */
 function playBeep(){
   try{
     if(!$("#beep") || !$("#beep").checked) return; // guard by checkbox
     if(beepEl && beepEl.src && beepEl.src.trim() !== ""){
-      beepEl.currentTime = 0;
+      try { beepEl.currentTime = 0; } catch(e) {}
       beepEl.play().catch(()=>{});
       return;
     }
+    // fallback oscillator beep
     const ctx = new (window.AudioContext||window.webkitAudioContext)();
     const o = ctx.createOscillator(); const g = ctx.createGain();
     o.connect(g); g.connect(ctx.destination); o.type="square"; o.frequency.value=880;
     o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.25);
-    setTimeout(()=>{o.stop();ctx.close();},260);
+    setTimeout(()=>{ try{ o.stop(); ctx.close(); }catch{} },260);
   }catch{}
 }
-function speakText(text){
-  try{
-    if(!$("#beep") || !$("#beep").checked) return;
-    speechSynthesis.cancel(); // avoid queue pile-up
-    const u=new SpeechSynthesisUtterance(text);
-    u.lang="en-IN";
-    speechSynthesis.speak(u);
-  }catch{}
+
+/* ===========================
+   Cute / Hindi Female Voice Selection
+=========================== */
+let femaleVoice = null;
+
+function chooseCuteVoice() {
+  const voices = speechSynthesis.getVoices() || [];
+  if (!voices.length) return null;
+
+  // 🌸 Preferred voices (Hindi first, then cute English voices)
+  const cutePreferred = [
+    "Google हिन्दी",              // Hindi voice (Chrome)
+    "Microsoft Heera",            // Hindi female voice (Windows)
+    "Microsoft Kalpana",          // Another Hindi option
+    "Google UK English Female",   // clear & soft English
+    "Google US English",          // friendly English
+    "Google WaveNet",             // Neural cute voices
+    "Microsoft Aria",
+    "Microsoft Jenny",
+    "Samantha",                   // macOS/iOS
+    "Fiona"
+  ];
+
+  // 1. Preferred cute/Hindi voices
+  for (const pref of cutePreferred) {
+    const found = voices.find(v =>
+      v.name && v.name.toLowerCase().includes(pref.toLowerCase())
+    );
+    if (found) return found;
+  }
+
+  // 2. If not found, fallback to Hindi by language code
+  const hindiVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith("hi"));
+  if (hindiVoices.length) return hindiVoices[0];
+
+  // 3. Fallback: female-like voices in any language
+  const femaleCandidates = voices.filter(v => {
+    const n = (v.name || "").toLowerCase();
+    return n.includes("female") || n.includes("aria") || n.includes("jenny") ||
+           n.includes("samantha") || n.includes("anna") || n.includes("sofia");
+  });
+  if (femaleCandidates.length) return femaleCandidates[0];
+
+  // 4. Last fallback: any English voice
+  const enVoices = voices.filter(v => v.lang && v.lang.startsWith("en"));
+  return enVoices[0] || voices[0] || null;
 }
+
+speechSynthesis.onvoiceschanged = () => {
+  femaleVoice = chooseCuteVoice();
+};
+femaleVoice = chooseCuteVoice();
+
+/* Speak text with cute/Hindi voice */
+function speakText(text) {
+  try {
+    if (!$("#beep") || !$("#beep").checked) return;
+
+    playBeep();
+    speechSynthesis.cancel();
+
+    const u = new SpeechSynthesisUtterance(String(text));
+
+    // ✅ Prefer Hindi language
+    if (femaleVoice && femaleVoice.lang.toLowerCase().startsWith("hi")) {
+      u.lang = "hi-IN";
+    } else {
+      u.lang = "en-US"; // fallback English
+    }
+
+    u.rate = 1.0;    // normal speed (keep Hindi clear)
+    u.pitch = 1.1;   // slightly higher for friendly tone
+
+    if (femaleVoice) u.voice = femaleVoice;
+
+    setTimeout(() => {
+      try { speechSynthesis.speak(u); } catch (e) {
+        console.warn("speech failed", e);
+      }
+    }, 160);
+
+  } catch (err) {
+    console.warn("speakText error", err);
+  }
+}
+
+
 
 /* ===========================
    State
