@@ -1,0 +1,3474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QR Attendance — Saamarthya Academy</title>
+
+<!-- ZXing QR scanner -->
+<script src="https://unpkg.com/@zxing/library@0.20.0"></script>
+
+<style>
+/* ====== Base / Tokens ====== */
+:root{
+  --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --bg-solid: #f8fafc;
+  --surface: #ffffff; 
+  --surface-elevated: #ffffff;
+  --ink: #1e293b; 
+  --muted: #64748b; 
+  --line: #e2e8f0;
+  --primary: #3b82f6; 
+  --primary-weak: #dbeafe; 
+  --primary-hover: #2563eb;
+  --ok: #10b981; 
+  --ok-weak: #d1fae5;
+  --warn: #ef4444;
+  --warn-weak: #fee2e2;
+  --accent: #8b5cf6;
+  --accent-weak: #ede9fe;
+
+  --radius-xl: 20px; 
+  --radius: 16px;
+  --radius-sm: 8px;
+  --font: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+
+  /* Enhanced fluid spacing + typography */
+  --pad: clamp(16px, 2.5vw, 28px);
+  --gap: clamp(12px, 2vw, 20px);
+  --fs-base: clamp(14px, 1.3vw, 16px);
+  --fs-sm: clamp(12px, 1vw, 14px);
+  --fs-xs: clamp(10px, 0.8vw, 12px);
+  --fs-h1: clamp(20px, 2.5vw, 28px);
+  --fs-h2: clamp(18px, 2vw, 22px);
+  --fs-h3: clamp(16px, 1.8vw, 20px);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Transitions */
+  --transition-fast: 150ms ease-in-out;
+  --transition: 250ms ease-in-out;
+  --transition-slow: 350ms ease-in-out;
+}
+
+/* ====== Base Styles ====== */
+*{
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html{
+  height: 100%;
+  scroll-behavior: smooth;
+}
+
+body{
+  height: 100%;
+  margin: 0;
+  background: var(--bg-solid);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Add Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ====== Header ====== */
+header{
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: saturate(180%) blur(12px);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+header:hover{
+  box-shadow: var(--shadow);
+}
+.wrap{
+  max-width:1320px;
+  margin:0 auto;
+  padding: calc(var(--pad) - 2px) var(--pad);
+  width: min(1320px, 100%);
+}
+.header-bar{
+  display:flex;justify-content:space-between;align-items:center;gap:var(--gap);
+  flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+h1{margin:0;font-size:var(--fs-h1);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.subtitle{color:var(--muted);font-size:var(--fs-sm)}
+
+/* ====== Buttons / Links ====== */
+a.btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  transition: var(--transition);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  font-size: var(--fs-base);
+  min-height: 44px;
+  position: relative;
+  overflow: hidden;
+}
+
+a.btn::before{
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: var(--transition);
+}
+
+a.btn:hover::before{
+  left: 100%;
+}
+
+a.btn.primary{
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+a.btn.primary:hover{
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+button{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  min-height: 44px;
+  font-size: var(--fs-base);
+  position: relative;
+  overflow: hidden;
+}
+
+button::before{
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: var(--transition);
+}
+
+button:hover::before{
+  left: 100%;
+}
+
+button:hover{
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+button:active{
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+button:disabled{
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+button:disabled::before{
+  display: none;
+}
+
+button.primary{
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+button.ghost{
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+button.ghost:hover{
+  background: var(--surface);
+  border-color: var(--primary);
+}
+
+button.ok{
+  background: linear-gradient(135deg, var(--ok) 0%, #059669 100%);
+  color: #fff;
+  border-color: var(--ok);
+  box-shadow: var(--shadow);
+}
+
+button.warn{
+  background: linear-gradient(135deg, var(--warn) 0%, #dc2626 100%);
+  color: #fff;
+  border-color: var(--warn);
+  box-shadow: var(--shadow);
+}
+
+.btn-hover-red:hover{
+  border-color: var(--warn);
+  box-shadow: 0 0 0 3px rgba(239,68,68,.15);
+}
+
+button.ghost.btn-hover-red:hover{
+  background: var(--warn-weak);
+}
+
+.btn-sm{
+  font-size: var(--fs-sm);
+  padding: 8px 14px;
+  min-height: 36px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-danger-lg, .btn-accent-lg{
+  padding: 16px 24px;
+  border-radius: var(--radius);
+  font-weight: 700;
+  min-height: 52px;
+  font-size: var(--fs-base);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-danger-lg{
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  border: none;
+}
+
+.btn-danger-lg:hover{
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-xl);
+}
+
+.btn-accent-lg{
+  background: linear-gradient(135deg, var(--ok) 0%, #059669 100%);
+  color: #fff;
+  border: none;
+}
+
+.btn-accent-lg:hover{
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-xl);
+}
+
+/* ====== Layout ====== */
+.grid{display:grid;gap:var(--gap);grid-template-columns:1.15fr .85fr}
+@media (max-width:1200px){ .grid{grid-template-columns:1fr} }
+
+/* ====== Cards / Sections ====== */
+.card{
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  padding: clamp(20px, 2.5vw, 32px);
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before{
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.card:hover{
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-weak);
+}
+
+.card:hover::before{
+  opacity: 1;
+}
+
+.card h2{
+  margin: 0 0 16px;
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card h2::before{
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--primary);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ====== Scanner ====== */
+.scan-drop{
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--primary-weak) 0%, var(--accent-weak) 100%);
+  display: grid;
+  place-items: center;
+  transition: var(--transition);
+  overflow: hidden;
+}
+
+.scan-drop:hover{
+  border-color: var(--primary);
+  transform: scale(1.01);
+  box-shadow: var(--shadow-lg);
+}
+
+.qr-placeholder{
+  width: clamp(96px, 12vw, 140px);
+  height: clamp(96px, 12vw, 140px);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 800;
+  box-shadow: var(--shadow-lg);
+  animation: pulse 2s infinite;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.scan-drop input[type=file].file-btn{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,62px);
+  background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer
+}
+.scan-active .qr-placeholder,.scan-active .file-btn{display:none}
+.scan-active #video{display:block}
+
+/* border feedback */
+.border-pending{ border-color:#fb923c !important; } /* orange */
+.border-ok{ border-color:#22c55e !important; }      /* green */
+.border-warn{ border-color:#ef4444 !important; }    /* red */
+
+.controls{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px
+}
+
+/* ====== Filters ====== */
+.filterbar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;
+  flex-wrap:wrap;
+}
+.filterbar .left,.filterbar .right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.select, select, input[type=date], input[type=text], input[type=email]{
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  min-height: 44px;
+  font-weight: 500;
+  font-size: var(--fs-base);
+  max-width: 100%;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+
+.select:focus, select:focus, input[type=date]:focus, input[type=text]:focus, input[type=email]:focus{
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.select:hover, select:hover, input[type=date]:hover, input[type=text]:hover, input[type=email]:hover{
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
+}
+#filtersPanel{display:none;margin-top:10px}
+#filtersPanel .left{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* ====== Table ====== */
+.table-wrap{
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.table-wrap:hover{
+  box-shadow: var(--shadow);
+}
+
+table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-base);
+}
+
+thead th{
+  background: linear-gradient(135deg, var(--primary-weak) 0%, var(--accent-weak) 100%);
+  color: var(--ink);
+  font-weight: 700;
+  border-bottom: 2px solid var(--primary);
+  padding: 16px 12px;
+  text-align: left;
+  font-size: var(--fs-sm);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+thead th:first-child{
+  border-radius: var(--radius-sm) 0 0 0;
+}
+
+thead th:last-child{
+  border-radius: 0 var(--radius-sm) 0 0;
+}
+
+td{
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  transition: var(--transition-fast);
+}
+
+tbody tr{
+  transition: var(--transition-fast);
+}
+
+tbody tr:nth-child(even){
+  background: rgba(59, 130, 246, 0.02);
+}
+
+tbody tr:hover{
+  background: var(--primary-weak);
+  transform: scale(1.01);
+}
+
+tbody tr:hover td{
+  color: var(--primary);
+  font-weight: 500;
+}
+
+td.center{
+  text-align: center;
+}
+
+.chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  transition: var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.chip::before{
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+.chip.ok{
+  background: linear-gradient(135deg, var(--ok-weak) 0%, #ecfdf5 100%);
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.chip.warn{
+  background: linear-gradient(135deg, var(--warn-weak) 0%, #fef2f2 100%);
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.chip:hover{
+  transform: scale(1.05);
+  box-shadow: var(--shadow);
+}
+
+/* ====== Dashboard actions (one line) ====== */
+.dash-actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  align-items:center;
+  flex-wrap:nowrap;
+  margin-top:16px
+}
+
+/* ====== Responsive Design ====== */
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: var(--gap);
+  }
+  
+  .header-bar {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .brand {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .wrap {
+    padding: var(--pad);
+  }
+  
+  .card {
+    padding: clamp(16px, 4vw, 24px);
+  }
+  
+  .filterbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .filterbar .left,
+  .filterbar .right {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .dash-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .btn-danger-lg,
+  .btn-accent-lg {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .controls button {
+    width: 100%;
+  }
+  
+  table {
+    font-size: var(--fs-sm);
+  }
+  
+  thead th,
+  td {
+    padding: 8px 6px;
+  }
+  
+  .qr-placeholder {
+    width: clamp(80px, 20vw, 120px);
+    height: clamp(80px, 20vw, 120px);
+    font-size: clamp(24px, 6vw, 36px);
+  }
+}
+
+@media (max-width: 480px) {
+  .card h2 {
+    font-size: var(--fs-h3);
+    text-align: center;
+  }
+  
+  .scan-drop {
+    aspect-ratio: 4/3;
+  }
+  
+  .table-wrap {
+    overflow-x: auto;
+  }
+  
+  table {
+    min-width: 600px;
+  }
+  
+  .chip {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+}
+
+/* ====== Dark Mode Support ====== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-solid: #0f172a;
+    --surface: #1e293b;
+    --surface-elevated: #334155;
+    --ink: #f1f5f9;
+    --muted: #94a3b8;
+    --line: #334155;
+  }
+  
+  .scan-drop {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  }
+  
+  tbody tr:nth-child(even) {
+    background: rgba(59, 130, 246, 0.05);
+  }
+}
+
+/* ====== Print Styles ====== */
+@media print {
+  header,
+  .controls,
+  .filterbar,
+  .dash-actions,
+  button {
+    display: none !important;
+  }
+  
+  .card {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+  
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+
+
+/* =========================
+   NEW: Page open animation
+   (append this at the end of your stylesheet)
+   ========================= */
+:root{
+  --page-enter-duration: .6s;
+  --page-enter-ease: cubic-bezier(.16,.84,.44,1);
+  --btn-hover-scale: 1.035;
+  --btn-hover-shadow: 0 8px 30px rgba(31,42,68,.12);
+  --qr-logo-size: clamp(56px, 8vw, 96px);
+}
+
+/* initial invisible state -> animate in */
+body{
+  opacity: 0;
+  transform: translateY(8px) scale(.998);
+  will-change: opacity, transform;
+  animation: pageEnter var(--page-enter-duration) var(--page-enter-ease) .08s forwards;
+}
+
+@keyframes pageEnter{
+  to{
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* small, subtle stagger for major containers (optional; non-invasive) */
+.wrap, .card, header, .grid {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: fadeUp .45s ease-out .14s forwards;
+}
+@keyframes fadeUp{
+  to{ opacity:1; transform:translateY(0); }
+}
+
+/* =========================
+   NEW: Better button hover ("good habour")
+   - keeps your current classes; only adds hover/focus polish
+   ========================= */
+a.btn, button{
+  transition:
+    transform 180ms var(--page-enter-ease),
+    box-shadow 220ms var(--page-enter-ease),
+    background-color 160ms linear,
+    border-color 160ms linear;
+  will-change: transform, box-shadow;
+}
+
+/* hover + focus-visible */
+a.btn:hover, button:hover,
+a.btn:focus-visible, button:focus-visible {
+  transform: translateY(-3px) scale(var(--btn-hover-scale));
+  box-shadow: var(--btn-hover-shadow);
+  z-index: 20;
+  outline: none; /* keep focus-visible for accessibility below */
+}
+
+/* accessible focus style */
+a.btn:focus-visible, button:focus-visible {
+  box-shadow: 0 0 0 4px rgba(59,91,255,.12), var(--btn-hover-shadow);
+}
+
+/* subtle active press */
+a.btn:active, button:active {
+  transform: translateY(0) scale(0.995);
+  box-shadow: 0 4px 14px rgba(31,42,68,.08);
+}
+
+/* small variant polish */
+.btn-sm:hover { transform: translateY(-2px) scale(1.02) }
+
+/* =========================
+   NEW: QR logo styles + example SVG markup
+   - Use a simple container with class .qr-logo
+   - Swap colors, size, or replace the inline SVG with any exported svg/png
+   ========================= */
+.qr-logo{
+  display:inline-grid;
+  place-items:center;
+  width:var(--qr-logo-size);
+  height:var(--qr-logo-size);
+  border-radius:14px;
+  background: linear-gradient(135deg,#e8efff 0%, #fff5f7 100%);
+  box-shadow: 0 8px 30px rgba(15,23,42,.06), inset 0 1px 0 rgba(255,255,255,.6);
+  border:1px solid rgba(31,42,68,.06);
+  padding:8px;
+}
+
+/* small inner frame to style an SVG/logo inside */
+.qr-logo svg { width: calc(var(--qr-logo-size) - 18px); height: calc(var(--qr-logo-size) - 18px); display:block; }
+
+/* optional: animated scan line when scanner active */
+.qr-logo.scan-active{
+  position:relative;
+  overflow:hidden;
+}
+.qr-logo.scan-active::after{
+  content:"";
+  position:absolute;left:-40%;right:-40%;height:6px;
+  top:50%;
+  transform:translateY(-50%) rotate(-6deg);
+  background: linear-gradient(90deg, transparent, rgba(255,106,106,.14), transparent);
+  animation: scanLine 1.6s linear infinite;
+  filter: blur(.5px);
+}
+@keyframes scanLine{
+  0%{ transform: translateX(-100%) translateY(-50%) rotate(-6deg); opacity:.0 }
+  20%{ opacity:.8 }
+  100%{ transform: translateX(200%) translateY(-50%) rotate(-6deg); opacity:.0 }
+}
+
+/* =========================
+   NEW: tiny utility helpers (keeps CSS well-arranged)
+   ========================= */
+.u-center { display:flex; align-items:center; justify-content:center; }
+.u-clickable { cursor:pointer; }
+
+
+
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="wrap header-bar">
+    <div class="brand">
+      <img src="LOGOOO.svg" height="50" width="50" alt="Saamarthya Academy Logo">
+      <div>
+        <h1> Saamarthya Academy</h1>
+        <div class="subtitle">Online Attendance System</div>
+      </div>
+    </div>
+    <nav>
+      <a href="qr-generator.html" class="btn primary">QR Generator</a>
+    </nav>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="wrap" style="margin-top:12px;">
+  <div class="grid">
+    <!-- LEFT: Scanner + Log -->
+    <section class="card">
+      <h2>Scan Student QR Code</h2>
+
+      <div id="scanTile" class="scan-drop">
+        <div class="qr-placeholder"><img src="camera.svg" width="60" height="60" alt=""></div>
+        <br>
+        <input type="file" id="fileInput" accept="image/*" class="file-btn" />
+        <video id="video" playsinline style="display:none; width:100%; height:100%; border-radius:14px;"></video>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn" class="primary btn-sm btn-hover-red">Start Camera</button>
+        <button id="stopBtn"  class="ghost   btn-sm btn-hover-red" disabled>Stop Camera</button>
+        <label class="row" style="gap:6px; color:var(--muted);">
+          <input type="checkbox" id="beep" checked /> Beep + Voice
+        </label>
+      </div>
+
+      <div class="filterbar">
+        <div class="left">
+          <button id="toggleFilters" class="ghost btn-hover-red">Filters</button>
+        </div>
+        <div class="right">
+          <button id="downloadCsv" class="ok btn-hover-red">Download Attendance</button>
+        </div>
+      </div>
+
+      <div id="filtersPanel">
+        <div class="left">
+          <select id="cameraSelect" class="select" title="Camera"></select>
+          <select id="filterClass" class="select">
+            <option value="">All Classes</option>
+          </select>
+          <select id="filterStatus" class="select">
+            <option value="">All Status</option>
+            <option value="Present">Present</option>
+            <option value="Duplicate">Duplicate</option>
+          </select>
+          <input type="date" id="filterDateFrom" />
+          <input type="date" id="filterDateTo" />
+        </div>
+      </div>
+
+      <!-- Centered last-scan message -->
+      <div id="lastScanMsg" style="margin-top:6px; color:var(--muted); font-size:13px; text-align:center;"></div>
+
+      <div class="table-wrap" style="margin-top:10px;">
+        <table id="logTable" aria-label="Attendance Log">
+          <thead>
+            <tr>
+              <th>#</th><th>Student ID</th><th>Name</th><th>Class</th><th>Status</th><th>Date</th><th>Time</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot><tr id="noRows" style="display:none;"><td colspan="7" class="center" style="color:var(--muted)">No results</td></tr></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- RIGHT: Dashboard + Actions + History -->
+    <section class="card">
+      <h2>Dashboard Overview</h2>
+
+      <div class="table-wrap">
+        <table id="dashTable" aria-label="Dashboard by Class">
+          <thead>
+            <tr>
+              <th>Class</th><th>Total Students</th><th>Present Today</th><th>Absent Today</th>
+            </tr>
+          </thead>
+          <tbody id="dashBody"></tbody>
+        </table>
+      </div>
+
+      <div class="dash-actions">
+        <button id="clearAll" class="btn-danger-lg">Clear All</button>
+        <button id="clearToday" class="btn-danger-lg">Clear Today</button>
+        <button id="finalizeAndDownload" class="btn-accent-lg">Finalize Day</button>
+        <button id="debugPanel" class="ghost btn-sm">Debug</button>
+      </div>
+
+      <div class="subtitle" id="overallSummary" style="margin-top:8px; text-align:center;">Overall —</div>
+      
+      <!-- Network Status Indicator -->
+      <div id="networkStatus" class="status-indicator online" style="margin-top:12px; justify-content:center;">
+        <span id="networkStatusText">Online</span>
+      </div>
+
+      <div id="historySection" style="margin-top:14px;">
+        <h2 style="font-size:var(--fs-h2); margin:10px 0 8px;">History (Recent Days)</h2>
+        <div class="table-wrap">
+          <table id="historyTable" aria-label="Attendance History">
+            <thead>
+              <tr>
+                <th>Date</th><th>Present</th><th>Absent</th><th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- Toast -->
+<!-- Enhanced Toast with better styling -->
+<div class="toast" id="toast" style="display:none; position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--surface); color:var(--ink); padding:12px 20px; border-radius:var(--radius); font-weight:600; box-shadow:var(--shadow-xl); border:1px solid var(--line); backdrop-filter:blur(8px); z-index:10000; transition:var(--transition); min-width:200px; text-align:center;"></div>
+
+<!-- Loading Spinner Styles -->
+<style>
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Enhanced status indicators */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.status-indicator.online {
+  color: var(--ok);
+  border-color: var(--ok);
+  background: var(--ok-weak);
+}
+
+.status-indicator.offline {
+  color: var(--warn);
+  border-color: var(--warn);
+  background: var(--warn-weak);
+}
+
+.status-indicator::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s infinite;
+}
+</style>
+
+<!-- 🎵 Custom beep hook -->
+<audio id="beepAudio" preload="auto" src="Tone.mp3"></audio>
+
+<script>
+/* ===========================
+   API CONFIG (edit if needed)
+=========================== */
+// Because this HTML is served by the SAME Express server on Render,
+// use same-origin calls (works locally and on Render)
+const API_BASE = "";   // or: const API_BASE = window.location.origin;
+// If you prefer explicit URL, you can use:
+// const API_BASE = "https://abc-qr.onrender.com";
+
+/* ===========================
+   Students DB (OBJECT)
+=========================== */
+const students = {
+  "SAH25009": { name:"Aditya Raj", class:"8",  phone:"6206971640", email:"parent1@gmail.com" },
+  "SAH25010": { name:"Shreyansh Kumar", class:"8",  phone:"8340135190", email:"anurandhakumari1986@gmail.com" },
+  "SAH25011": { name:"Aayush Kant", class:"8",  phone:"7321852484", email:"Shwetarani62621@gmail.com" },
+  "SAH25201": { name:"Aarav Kumar", class:"8",  phone:"6204020655", email:"Shyamroaster@gmail.com" },
+  "SAH25000": { name:"Anshul Kumar", class:"8",  phone:"6204020655", email:"Gone123456006@gmail.com" },
+
+  "SAJ25013": { name:"Kritika Arya", class:"10", phone:"7870454422", email:"jitendaraannu@gmail.com" },
+  "SAJ25012": { name:"Shweta Kumari", class:"10", phone:"8873238428", email:"ajaybhagat1880@gmail.com" },
+  "SAJ25011": { name:"Divyanshu Kumar", class:"10", phone:"8789580780", email:"divyanshukumar2323k@gmail.com" },
+  "SAJ25016": { name:"Arnav", class:"10", phone:"9934490207", email:"rajnishbharti84@gmail.com" },
+  "SAJ25015": { name:"Dhruv Ranjan", class:"10", phone:"7979709595", email:"dhruvranjan888@gmail.com" },
+  "SAJ25014": { name:"Sonali Kumari", class:"10", phone:"8862991979", email:"dollydevi0108@gmail.com" },
+
+  "SAN25008": { name:"Ashutosh Raj", class:"9",  phone:"9905606885", email:"ajaybhagat1880@gmail.com" },
+  "SAN25016": { name:"Satyam Kumar", class:"9",  phone:"9472094162", email:"raybishwambhar851@gmail.com" },
+  "SAN25012": { name:"Krish Raj", class:"9",  phone:"9304998868", email:"ajeet74844@gmail.com" },
+  "SAN25011": { name:"Manvi", class:"9",  phone:"8989972932", email:"Mukeshkumar180075@gmail.com" },
+  "SAN25015": { name:"Bharat Kumar Adarsh", class:"9", phone:"9122609590", email:"nitya4world@gmail.com" },
+  "SAN25010": { name:"Tripti Kumari", class:"9", phone:"8789832449", email:"niketakumari0416@gmail.com" },
+  "SAN25013": { name:"Anamika", class:"9", phone:"9508400448", email:"Sinha2nitesh@gmail.com" },
+  "SAN25014": { name:"Saumya Chauhan", class:"9", phone:"6205053029", email:"arvindkmariur12324@gmail.com" },
+  "SAN25017": { name:"Kumari Kamya", class:"9", phone:"6204020655", email:"kamini27285@gmail.com" },
+
+"SAE25045": { name:"Khushi Kumari", class:"11", phone:"8877949381", email:"Hmvishwajeetkumar2002@gmail.com" },
+"SAE25020": { name:"Saloni", class:"11", phone:"6204020655", email:"rinkisinghladdu@gmail.com" },
+"SAE25037": { name:"Janvi Srivastava", class:"11", phone:"9973320400", email:"Shabnamranjan8@gmail.com" },
+"SAE25039": { name:"Samiksha Srivastava", class:"11", phone:"765462851",  email:"Subodhsrv@gmail.com" },
+"SAE25038": { name:"Saumya Raj", class:"11", phone:"9570419189", email:"rajsaumya991@gmail.com" },
+"SAE25022": { name:"Naina Kumari", class:"11", phone:"9234764044", email:"Shwetakumarishs1234@gmail.com" },
+"SAE25044": { name:"Vishal Pathak", class:"11", phone:"7547870991", email:"VishalkumarPathak7547@gmail.com" },
+"SAE25040": { name:"Sunny Kumar", class:"11", phone:"7321987684", email:"ak3444749@gmail.com" },
+"SAE25030": { name:"Tanish Kumar", class:"11", phone:"9525201135", email:"tanishthakur317@gmail.com" },
+"SAE25026": { name:"Vijay Kumar", class:"11", phone:"7352103550", email:"mrvijayyt444@gmail.com" },
+"SAE25028": { name:"Rishi Raj", class:"11", phone:"8757497670", email:"Kaveri8757@gmail.com" },
+"SAE25031": { name:"Aashmit Kumar", class:"11", phone:"6203666094", email:"Priyasingh1990un@gmail.com" },
+"SAE25029": { name:"Shivam Kumar", class:"11", phone:"9113310468", email:"Singhriya43078@gmail.com" },
+"SAE25019": { name:"Md. Isatehsanullah", class:"11", phone:"6299355373", email:"iftekharanjum381@gmail.com" },
+"SAE25036": { name:"Md. Mojahid Hussain", class:"11", phone:"6203245651", email:"Hmvishwajeetkumar2002@gmail.com" },
+"SAE25025": { name:"Kumari Shreya", class:"11", phone:"9835475671", email:"ravimishrpn@gmail.com" },
+"SAE25048": { name:"Durga Kumari", class:"11", phone:"9934727967", email:"daskingamar1221@gmail.com" },
+"SAE25046": { name:"Suhani Kumari", class:"11", phone:"8638261845", email:"Hmvishwajeetkumar2002@gmail.com" },
+"SAE25047": { name:"Anamika Kumari", class:"11", phone:"9229147310", email:"Sanjudevi2961@gmail.com" },
+"SAE25027": { name:"Ankit Kumar", class:"11", phone:"6299716130", email:"kumar6299ankit@gmail.com" },
+"SAE25049": { name:"Annu Kumari", class:"11", phone:"9430617112", email:"annukri8631@gmail.com" },
+"SAE25024": { name:"Lakshya Raj", class:"11", phone:"9430826803", email:"kumaramar6488@gmail.com" },
+"SAE25042": { name:"Ayush Raj", class:"11", phone:"9162094513", email:"" },
+"SAE25033": { name:"Aditya Kumar", class:"11", phone:"7632964536", email:"singhriti422@gmail.com" },
+"SAE25041": { name:"Aditya Kumar", class:"11", phone:"7250592935", email:"Hmvishwajeetkumar2002@gmail.com" },
+};
+
+/* Convert object → array for UI logic */
+const studentArr = Object.entries(students).map(([id, s]) => ({ id, ...s }));
+
+/* ===========================
+   Storage
+=========================== */
+const LS_KEY = "sa_qr_attendance_v1";
+const BACKUP_KEY = "sa_qr_attendance_backup";
+
+// Enhanced storage with security and error handling
+function loadAttendance() {
+  Logger.performance.start('loadAttendance');
+  
+  try {
+    Logger.debug("Loading attendance data from storage");
+    
+    // Try secure storage first
+    let data = Security.secureStorage.getItem(LS_KEY);
+    
+    // Fallback to regular localStorage if secure storage fails
+    if (!data) {
+      Logger.debug("Secure storage empty, trying regular localStorage");
+      const rawData = localStorage.getItem(LS_KEY);
+      if (rawData) {
+        try {
+          data = JSON.parse(rawData);
+          Logger.info("Loaded data from regular localStorage");
+        } catch (parseError) {
+          Logger.warn("Failed to parse regular storage, trying backup", { error: parseError.message });
+        }
+      }
+    }
+    
+    if (!data) {
+      Logger.info("No attendance data found, returning empty array");
+      return [];
+    }
+    
+    if (!Array.isArray(data)) {
+      Logger.warn("Invalid attendance data format, resetting", { dataType: typeof data });
+      return [];
+    }
+    
+    Logger.debug(`Processing ${data.length} attendance records`);
+    
+    // Validate and sanitize data structure
+    const validData = data.filter(entry => {
+      if (!entry || typeof entry !== 'object') return false;
+      
+      // Validate required fields
+      const requiredFields = ['id', 'name', 'class', 'status', 'date', 'time'];
+      for (const field of requiredFields) {
+        if (!entry[field] || typeof entry[field] !== 'string') return false;
+      }
+      
+      // Sanitize student ID
+      const sanitizedId = Security.validateAndSanitizeStudentId(entry.id);
+      if (!sanitizedId) return false;
+      
+      // Sanitize other string fields
+      entry.id = sanitizedId;
+      entry.name = Security.sanitizeInput(entry.name);
+      entry.class = Security.sanitizeInput(entry.class);
+      entry.status = Security.sanitizeInput(entry.status);
+      entry.date = Security.sanitizeInput(entry.date);
+      entry.time = Security.sanitizeInput(entry.time);
+      
+      return true;
+    });
+    
+    if (validData.length !== data.length) {
+      Logger.warn(`Filtered ${data.length - validData.length} invalid entries`, {
+        total: data.length,
+        valid: validData.length,
+        invalid: data.length - validData.length
+      });
+    }
+    
+    Logger.info(`Successfully loaded ${validData.length} valid attendance records`);
+    Logger.performance.end('loadAttendance');
+    
+    return validData;
+  } catch (error) {
+    Logger.error("Error loading attendance", { error: error.message, stack: error.stack });
+    
+    // Try to load from backup
+    try {
+      Logger.debug("Attempting to load from backup");
+      const backup = Security.secureStorage.getItem(BACKUP_KEY) || 
+                    JSON.parse(localStorage.getItem(BACKUP_KEY) || '[]');
+      if (Array.isArray(backup)) {
+        Logger.info("Successfully loaded from backup data", { recordCount: backup.length });
+        return backup;
+      }
+    } catch (backupError) {
+      Logger.error("Backup also failed", { error: backupError.message });
+    }
+    
+    Logger.performance.end('loadAttendance');
+    return [];
+  }
+}
+
+function saveAttendance(rows) {
+  Logger.performance.start('saveAttendance');
+  
+  try {
+    Logger.debug("Starting attendance save operation", { recordCount: rows.length });
+    
+    if (!Array.isArray(rows)) {
+      throw new Error("Attendance data must be an array");
+    }
+    
+    // Create backup before saving
+    Logger.debug("Creating backup of current data");
+    const currentData = Security.secureStorage.getItem(LS_KEY) || 
+                       JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+    if (Array.isArray(currentData)) {
+      Security.secureStorage.setItem(BACKUP_KEY, currentData);
+      Logger.debug("Backup created successfully", { backupCount: currentData.length });
+    }
+    
+    // Save using secure storage
+    Logger.debug("Saving data to secure storage");
+    const success = Security.secureStorage.setItem(LS_KEY, rows);
+    if (!success) {
+      throw new Error("Secure storage save failed");
+    }
+    
+    // Verify save was successful
+    Logger.debug("Verifying save operation");
+    const saved = Security.secureStorage.getItem(LS_KEY);
+    if (!saved || saved.length !== rows.length) {
+      throw new Error("Data verification failed after save");
+    }
+    
+    Logger.info(`Successfully saved ${rows.length} attendance records securely`);
+    Logger.performance.end('saveAttendance');
+    
+  } catch (error) {
+    Logger.error("Error saving attendance", { 
+      error: error.message, 
+      stack: error.stack,
+      recordCount: rows.length 
+    });
+    showToast("Failed to save attendance data", "#ef4444");
+    Logger.performance.end('saveAttendance');
+    throw error;
+  }
+}
+
+// Cleanup old backup data (keep only last 5 backups)
+function cleanupBackups() {
+  try {
+    Logger.debug("Starting backup cleanup");
+    const keys = Object.keys(localStorage);
+    const backupKeys = keys.filter(key => key.startsWith(BACKUP_KEY + "_"));
+    if (backupKeys.length > 5) {
+      const toRemove = backupKeys.slice(0, -5);
+      toRemove.forEach(key => localStorage.removeItem(key));
+      Logger.info(`Cleaned up ${toRemove.length} old backup files`);
+    }
+  } catch (error) {
+    Logger.warn("Error cleaning up backups", { error: error.message });
+  }
+}
+
+/* ===========================
+   Memory Management & Cleanup
+=========================== */
+const MemoryManager = {
+  // Cleanup intervals and timeouts
+  intervals: new Set(),
+  timeouts: new Set(),
+  
+  // Track event listeners for cleanup
+  eventListeners: new Map(),
+  
+  // Add interval with tracking
+  setInterval: (callback, delay) => {
+    const id = setInterval(callback, delay);
+    MemoryManager.intervals.add(id);
+    return id;
+  },
+  
+  // Add timeout with tracking
+  setTimeout: (callback, delay) => {
+    const id = setTimeout(callback, delay);
+    MemoryManager.timeouts.add(id);
+    return id;
+  },
+  
+  // Add event listener with tracking
+  addEventListener: (element, event, handler, options = {}) => {
+    element.addEventListener(event, handler, options);
+    const key = `${element.id || element.tagName}_${event}`;
+    if (!MemoryManager.eventListeners.has(key)) {
+      MemoryManager.eventListeners.set(key, []);
+    }
+    MemoryManager.eventListeners.get(key).push({ element, event, handler, options });
+  },
+  
+  // Cleanup all tracked resources
+  cleanup: () => {
+    try {
+      Logger.info("Starting memory cleanup");
+      
+      // Clear intervals
+      MemoryManager.intervals.forEach(id => clearInterval(id));
+      MemoryManager.intervals.clear();
+      
+      // Clear timeouts
+      MemoryManager.timeouts.forEach(id => clearTimeout(id));
+      MemoryManager.timeouts.clear();
+      
+      // Remove event listeners
+      MemoryManager.eventListeners.forEach(listeners => {
+        listeners.forEach(({ element, event, handler, options }) => {
+          element.removeEventListener(event, handler, options);
+        });
+      });
+      MemoryManager.eventListeners.clear();
+      
+      // Clear DOM references
+      Object.keys(DOM).forEach(key => {
+        DOM[key] = null;
+      });
+      
+      // Clear large data structures
+      if (logRows.length > 1000) {
+        logRows = logRows.slice(-500); // Keep only last 500 records
+        Logger.info("Trimmed logRows to prevent memory bloat");
+      }
+      
+      // Clear logs if too many
+      if (Logger.logs.length > 200) {
+        Logger.logs = Logger.logs.slice(-100);
+        Logger.info("Trimmed logs to prevent memory bloat");
+      }
+      
+      // Force garbage collection if available
+      if (window.gc) {
+        window.gc();
+        Logger.debug("Forced garbage collection");
+      }
+      
+      Logger.info("Memory cleanup completed");
+      
+    } catch (error) {
+      Logger.error("Error during memory cleanup", { error: error.message });
+    }
+  },
+  
+  // Monitor memory usage
+  getMemoryInfo: () => {
+    if (performance.memory) {
+      return {
+        used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
+        total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024),
+        limit: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024)
+      };
+    }
+    return null;
+  },
+  
+  // Check if memory usage is high
+  isMemoryHigh: () => {
+    const memInfo = MemoryManager.getMemoryInfo();
+    if (memInfo) {
+      const usagePercent = (memInfo.used / memInfo.limit) * 100;
+      return usagePercent > 80; // Consider high if over 80%
+    }
+    return false;
+  }
+};
+
+// Periodic memory monitoring
+MemoryManager.setInterval(() => {
+  if (MemoryManager.isMemoryHigh()) {
+    Logger.warn("High memory usage detected, performing cleanup", MemoryManager.getMemoryInfo());
+    MemoryManager.cleanup();
+  }
+}, 30000); // Check every 30 seconds
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+  Logger.info("Page unloading, performing final cleanup");
+  MemoryManager.cleanup();
+});
+
+// Cleanup on visibility change (when tab becomes hidden)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    Logger.debug("Page hidden, performing cleanup");
+    MemoryManager.cleanup();
+  }
+});
+
+/* ===========================
+   Utils
+=========================== */
+const $ = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+
+// Enhanced date utilities with timezone support
+function todayStr(d = new Date()) { 
+  return d.toISOString().slice(0, 10); 
+}
+
+function formatDateTime(date = new Date()) {
+  return new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'Asia/Kolkata'
+  }).format(date);
+}
+
+// Enhanced toast with better styling and error handling
+function showToast(msg, bg, duration = 3000) {
+  try {
+    const t = $("#toast");
+    if (!t) {
+      console.warn("Toast element not found");
+      return;
+    }
+    
+    const oldBg = t.style.background;
+    if (bg) t.style.background = bg;
+    
+    t.textContent = msg;
+    t.style.display = "block";
+    t.style.opacity = "1";
+    
+    setTimeout(() => {
+      t.style.opacity = "0";
+      setTimeout(() => {
+        t.style.display = "none";
+        t.style.background = oldBg || "#111827";
+      }, 300);
+    }, duration);
+  } catch (error) {
+    console.error("Error showing toast:", error);
+  }
+}
+
+/* ===========================
+   Loading States & User Feedback
+=========================== */
+const LoadingStates = {
+  // Show loading overlay
+  show: (message = "Loading...", target = null) => {
+    try {
+      // Remove existing loading overlay
+      LoadingStates.hide();
+      
+      const overlay = document.createElement('div');
+      overlay.id = 'loading-overlay';
+      overlay.innerHTML = `
+        <div class="loading-content">
+          <div class="loading-spinner"></div>
+          <div class="loading-message">${Security.sanitizeHTML(message)}</div>
+        </div>
+      `;
+      
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        backdrop-filter: blur(2px);
+      `;
+      
+      // Add styles if not already added
+      if (!document.querySelector('#loading-styles')) {
+        const style = document.createElement('style');
+        style.id = 'loading-styles';
+        style.textContent = `
+          .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: fadeInScale 0.3s ease-out;
+          }
+          .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b5bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+          }
+          .loading-message {
+            color: #333;
+            font-weight: 600;
+            font-size: 16px;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      const container = target || document.body;
+      container.appendChild(overlay);
+      
+    } catch (error) {
+      console.error("Error showing loading state:", error);
+    }
+  },
+  
+  // Hide loading overlay
+  hide: () => {
+    try {
+      const overlay = document.getElementById('loading-overlay');
+      if (overlay) {
+        overlay.style.animation = 'fadeInScale 0.3s ease-out reverse';
+        setTimeout(() => overlay.remove(), 300);
+      }
+    } catch (error) {
+      console.error("Error hiding loading state:", error);
+    }
+  },
+  
+  // Show progress bar
+  showProgress: (message = "Processing...", progress = 0) => {
+    try {
+      LoadingStates.hide();
+      
+      const overlay = document.createElement('div');
+      overlay.id = 'progress-overlay';
+      overlay.innerHTML = `
+        <div class="progress-content">
+          <div class="progress-message">${Security.sanitizeHTML(message)}</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${Math.max(0, Math.min(100, progress))}%"></div>
+          </div>
+          <div class="progress-percentage">${Math.round(progress)}%</div>
+        </div>
+      `;
+      
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        backdrop-filter: blur(2px);
+      `;
+      
+      // Add progress styles if not already added
+      if (!document.querySelector('#progress-styles')) {
+        const style = document.createElement('style');
+        style.id = 'progress-styles';
+        style.textContent = `
+          .progress-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            min-width: 300px;
+            animation: fadeInScale 0.3s ease-out;
+          }
+          .progress-message {
+            color: #333;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 20px;
+          }
+          .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+          }
+          .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b5bff, #22c55e);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+          }
+          .progress-percentage {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      document.body.appendChild(overlay);
+      
+    } catch (error) {
+      console.error("Error showing progress:", error);
+    }
+  },
+  
+  // Update progress
+  updateProgress: (progress, message = null) => {
+    try {
+      const overlay = document.getElementById('progress-overlay');
+      if (overlay) {
+        const fill = overlay.querySelector('.progress-fill');
+        const percentage = overlay.querySelector('.progress-percentage');
+        const messageEl = overlay.querySelector('.progress-message');
+        
+        if (fill) fill.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+        if (percentage) percentage.textContent = `${Math.round(progress)}%`;
+        if (messageEl && message) messageEl.textContent = Security.sanitizeHTML(message);
+      }
+    } catch (error) {
+      console.error("Error updating progress:", error);
+    }
+  }
+};
+
+/* ===========================
+   Logging & Debugging System
+=========================== */
+const Logger = {
+  levels: {
+    ERROR: 0,
+    WARN: 1,
+    INFO: 2,
+    DEBUG: 3
+  },
+  
+  currentLevel: 2, // Default to INFO level
+  
+  setLevel: (level) => {
+    Logger.currentLevel = typeof level === 'string' ? Logger.levels[level.toUpperCase()] : level;
+  },
+  
+  formatMessage: (level, message, data = null) => {
+    const timestamp = new Date().toISOString();
+    const levelName = Object.keys(Logger.levels)[level];
+    const prefix = `[${timestamp}] [${levelName}]`;
+    
+    if (data) {
+      return `${prefix} ${message} | Data: ${JSON.stringify(data, null, 2)}`;
+    }
+    return `${prefix} ${message}`;
+  },
+  
+  log: (level, message, data = null) => {
+    if (level <= Logger.currentLevel) {
+      const formattedMessage = Logger.formatMessage(level, message, data);
+      
+      switch (level) {
+        case Logger.levels.ERROR:
+          console.error(formattedMessage);
+          break;
+        case Logger.levels.WARN:
+          console.warn(formattedMessage);
+          break;
+        case Logger.levels.INFO:
+          console.info(formattedMessage);
+          break;
+        case Logger.levels.DEBUG:
+          console.debug(formattedMessage);
+          break;
+      }
+      
+      // Store logs for debugging (limit to last 100 entries)
+      Logger.storeLog(level, message, data);
+    }
+  },
+  
+  error: (message, data = null) => Logger.log(Logger.levels.ERROR, message, data),
+  warn: (message, data = null) => Logger.log(Logger.levels.WARN, message, data),
+  info: (message, data = null) => Logger.log(Logger.levels.INFO, message, data),
+  debug: (message, data = null) => Logger.log(Logger.levels.DEBUG, message, data),
+  
+  // Store logs in memory for debugging
+  logs: [],
+  
+  storeLog: (level, message, data) => {
+    Logger.logs.push({
+      timestamp: Date.now(),
+      level: Object.keys(Logger.levels)[level],
+      message,
+      data,
+      stack: level === Logger.levels.ERROR ? new Error().stack : null
+    });
+    
+    // Keep only last 100 logs
+    if (Logger.logs.length > 100) {
+      Logger.logs = Logger.logs.slice(-100);
+    }
+  },
+  
+  // Get logs for debugging
+  getLogs: (level = null) => {
+    if (level === null) return Logger.logs;
+    return Logger.logs.filter(log => log.level === level);
+  },
+  
+  // Clear logs
+  clearLogs: () => {
+    Logger.logs = [];
+  },
+  
+  // Export logs for debugging
+  exportLogs: () => {
+    const logs = Logger.logs.map(log => ({
+      ...log,
+      timestamp: new Date(log.timestamp).toISOString()
+    }));
+    
+    const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `attendance_logs_${todayStr()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+  
+  // Performance monitoring
+  performance: {
+    marks: new Map(),
+    
+    start: (name) => {
+      Logger.performance.marks.set(name, performance.now());
+      Logger.debug(`Performance timer started: ${name}`);
+    },
+    
+    end: (name) => {
+      const startTime = Logger.performance.marks.get(name);
+      if (startTime) {
+        const duration = performance.now() - startTime;
+        Logger.performance.marks.delete(name);
+        Logger.info(`Performance: ${name} took ${duration.toFixed(2)}ms`);
+        return duration;
+      }
+      Logger.warn(`Performance timer not found: ${name}`);
+      return null;
+    }
+  }
+};
+
+// Initialize logging
+Logger.info("Logging system initialized", { 
+  level: Object.keys(Logger.levels)[Logger.currentLevel],
+  userAgent: navigator.userAgent,
+  timestamp: new Date().toISOString()
+});
+
+// Input validation utilities
+function validateStudentId(id) {
+  if (!id || typeof id !== 'string') return false;
+  const trimmed = id.trim();
+  return trimmed.length >= 3 && /^[A-Z0-9]+$/i.test(trimmed);
+}
+
+function validateEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+// Debounce utility for performance
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+/* ===========================
+   Security Utilities
+=========================== */
+const Security = {
+  // Sanitize HTML content to prevent XSS
+  sanitizeHTML: (str) => {
+    if (typeof str !== 'string') return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  },
+  
+  // Sanitize user input for display
+  sanitizeInput: (input) => {
+    if (typeof input !== 'string') return '';
+    return input
+      .trim()
+      .replace(/[<>\"'&]/g, (match) => {
+        const escapeMap = {
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#x27;',
+          '&': '&amp;'
+        };
+        return escapeMap[match];
+      });
+  },
+  
+  // Validate and sanitize student ID
+  validateAndSanitizeStudentId: (id) => {
+    if (!id || typeof id !== 'string') return null;
+    const sanitized = id.trim().toUpperCase();
+    if (!/^[A-Z0-9]{3,20}$/.test(sanitized)) return null;
+    return sanitized;
+  },
+  
+  // Rate limiting for API calls
+  rateLimiter: (() => {
+    const calls = new Map();
+    const RATE_LIMIT_WINDOW = 60000; // 1 minute
+    const MAX_CALLS_PER_WINDOW = 10;
+    
+    return {
+      check: (identifier) => {
+        const now = Date.now();
+        const userCalls = calls.get(identifier) || [];
+        
+        // Remove old calls outside the window
+        const validCalls = userCalls.filter(time => now - time < RATE_LIMIT_WINDOW);
+        
+        if (validCalls.length >= MAX_CALLS_PER_WINDOW) {
+          return false; // Rate limit exceeded
+        }
+        
+        validCalls.push(now);
+        calls.set(identifier, validCalls);
+        return true;
+      },
+      
+      reset: (identifier) => {
+        calls.delete(identifier);
+      }
+    };
+  })(),
+  
+  // Content Security Policy helpers
+  isAllowedOrigin: (url) => {
+    const allowedOrigins = [
+      window.location.origin,
+      'https://unpkg.com',
+      'https://cdn.jsdelivr.net'
+    ];
+    
+    try {
+      const urlObj = new URL(url);
+      return allowedOrigins.some(origin => urlObj.origin === origin);
+    } catch {
+      return false;
+    }
+  },
+  
+  // Secure local storage with encryption (basic)
+  secureStorage: {
+    setItem: (key, value) => {
+      try {
+        const encrypted = btoa(JSON.stringify(value));
+        localStorage.setItem(key, encrypted);
+        return true;
+      } catch (error) {
+        console.error('Secure storage set failed:', error);
+        return false;
+      }
+    },
+    
+    getItem: (key) => {
+      try {
+        const encrypted = localStorage.getItem(key);
+        if (!encrypted) return null;
+        return JSON.parse(atob(encrypted));
+      } catch (error) {
+        console.error('Secure storage get failed:', error);
+        return null;
+      }
+    },
+    
+    removeItem: (key) => {
+      try {
+        localStorage.removeItem(key);
+        return true;
+      } catch (error) {
+        console.error('Secure storage remove failed:', error);
+        return false;
+      }
+    }
+  }
+};
+
+/* 🎵 Customizable beep + professional female voice */
+const beepEl = document.getElementById("beepAudio");
+
+/* --- Beep playback (unchanged) --- */
+function playBeep(){
+  try{
+    if(!$("#beep") || !$("#beep").checked) return; // guard by checkbox
+    if(beepEl && beepEl.src && beepEl.src.trim() !== ""){
+      try { beepEl.currentTime = 0; } catch(e) {}
+      beepEl.play().catch(()=>{});
+      return;
+    }
+    // fallback oscillator beep
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination); o.type="square"; o.frequency.value=880;
+    o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.25);
+    setTimeout(()=>{ try{ o.stop(); ctx.close(); }catch{} },260);
+  }catch{}
+}
+
+/* ===========================
+   Cute / Hindi Female Voice Selection
+=========================== */
+let femaleVoice = null;
+
+function chooseCuteVoice() {
+  const voices = speechSynthesis.getVoices() || [];
+  if (!voices.length) return null;
+
+  // 🌸 Preferred voices (Hindi first, then cute English voices)
+  const cutePreferred = [
+    "Google हिन्दी",              // Hindi voice (Chrome)
+    "Microsoft Heera",            // Hindi female voice (Windows)
+    "Microsoft Kalpana",          // Another Hindi option
+    "Google UK English Female",   // clear & soft English
+    "Google US English",          // friendly English
+    "Google WaveNet",             // Neural cute voices
+    "Microsoft Aria",
+    "Microsoft Jenny",
+    "Samantha",                   // macOS/iOS
+    "Fiona"
+  ];
+
+  // 1. Preferred cute/Hindi voices
+  for (const pref of cutePreferred) {
+    const found = voices.find(v =>
+      v.name && v.name.toLowerCase().includes(pref.toLowerCase())
+    );
+    if (found) return found;
+  }
+
+  // 2. If not found, fallback to Hindi by language code
+  const hindiVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith("hi"));
+  if (hindiVoices.length) return hindiVoices[0];
+
+  // 3. Fallback: female-like voices in any language
+  const femaleCandidates = voices.filter(v => {
+    const n = (v.name || "").toLowerCase();
+    return n.includes("female") || n.includes("aria") || n.includes("jenny") ||
+           n.includes("samantha") || n.includes("anna") || n.includes("sofia");
+  });
+  if (femaleCandidates.length) return femaleCandidates[0];
+
+  // 4. Last fallback: any English voice
+  const enVoices = voices.filter(v => v.lang && v.lang.startsWith("en"));
+  return enVoices[0] || voices[0] || null;
+}
+
+speechSynthesis.onvoiceschanged = () => {
+  femaleVoice = chooseCuteVoice();
+};
+femaleVoice = chooseCuteVoice();
+
+/* Speak text with cute/Hindi voice */
+function speakText(text) {
+  try {
+    if (!$("#beep") || !$("#beep").checked) return;
+
+    playBeep();
+    speechSynthesis.cancel();
+
+    const u = new SpeechSynthesisUtterance(String(text));
+
+    // ✅ Prefer Hindi language
+    if (femaleVoice && femaleVoice.lang.toLowerCase().startsWith("hi")) {
+      u.lang = "hi-IN";
+    } else {
+      u.lang = "en-US"; // fallback English
+    }
+
+    u.rate = 1.0;    // normal speed (keep Hindi clear)
+    u.pitch = 1.1;   // slightly higher for friendly tone
+
+    if (femaleVoice) u.voice = femaleVoice;
+
+    setTimeout(() => {
+      try { speechSynthesis.speak(u); } catch (e) {
+        console.warn("speech failed", e);
+      }
+    }, 160);
+
+  } catch (err) {
+    console.warn("speakText error", err);
+  }
+}
+
+
+
+/* ===========================
+   State
+=========================== */
+let logRows = loadAttendance();
+const studentMap = new Map(studentArr.map(s => [s.id, s]));
+const classes = [...new Set(studentArr.map(s=>s.class))].sort((a,b)=>+a-+b);
+
+/* ===== Double-scan confirmation state ===== */
+let pendingCode = null;
+let pendingTime = 0;
+const PENDING_WINDOW_MS = 15000; // 15s
+
+/* ===========================
+   DOM refs - Cached for performance
+=========================== */
+const DOM = {
+  cameraSelect: null,
+  filterClass: null,
+  filterStatus: null,
+  filterDateFrom: null,
+  filterDateTo: null,
+  historyBody: null,
+  scanTile: null,
+  logTableBody: null,
+  dashBody: null,
+  lastScanMsg: null,
+  startBtn: null,
+  stopBtn: null,
+  beepCheckbox: null,
+  toast: null
+};
+
+// Initialize DOM references
+function initializeDOM() {
+  DOM.cameraSelect = $("#cameraSelect");
+  DOM.filterClass = $("#filterClass");
+  DOM.filterStatus = $("#filterStatus");
+  DOM.filterDateFrom = $("#filterDateFrom");
+  DOM.filterDateTo = $("#filterDateTo");
+  DOM.historyBody = $("#historyBody");
+  DOM.scanTile = document.getElementById("scanTile");
+  DOM.logTableBody = $("#logTable tbody");
+  DOM.dashBody = $("#dashBody");
+  DOM.lastScanMsg = $("#lastScanMsg");
+  DOM.startBtn = $("#startBtn");
+  DOM.stopBtn = $("#stopBtn");
+  DOM.beepCheckbox = $("#beep");
+  DOM.toast = $("#toast");
+  
+  // Validate critical DOM elements
+  const criticalElements = ['scanTile', 'logTableBody', 'dashBody', 'historyBody'];
+  const missing = criticalElements.filter(key => !DOM[key]);
+  if (missing.length > 0) {
+    console.error("Critical DOM elements missing:", missing);
+    throw new Error(`Missing critical DOM elements: ${missing.join(', ')}`);
+  }
+}
+
+// Populate class filter with better performance
+function populateClassFilter() {
+  if (!DOM.filterClass) return;
+  
+  // Clear existing options except the first one
+  const firstOption = DOM.filterClass.firstElementChild;
+  DOM.filterClass.innerHTML = '';
+  if (firstOption) {
+    DOM.filterClass.appendChild(firstOption);
+  }
+  
+  // Use DocumentFragment for better performance
+  const fragment = document.createDocumentFragment();
+  classes.forEach(c => {
+    const option = document.createElement("option");
+    option.value = c;
+    option.textContent = `Class ${c}`;
+    fragment.appendChild(option);
+  });
+  DOM.filterClass.appendChild(fragment);
+}
+
+/* ===========================
+   Dashboard - Optimized rendering
+=========================== */
+function renderDashboard() {
+  if (!DOM.dashBody) return;
+  
+  try {
+    const today = todayStr();
+    
+    // Optimize: Use Set for O(1) lookups instead of array filtering
+    const presentSet = new Set();
+    logRows.forEach(r => {
+      if (r.date === today && r.status === "Present") {
+        presentSet.add(r.id);
+      }
+    });
+
+    // Pre-calculate totals using Map for better performance
+    const totals = new Map();
+    classes.forEach(c => totals.set(c, { total: 0, present: 0 }));
+    
+    // Single pass through student array
+    studentArr.forEach(s => {
+      const t = totals.get(s.class);
+      t.total++;
+      if (presentSet.has(s.id)) {
+        t.present++;
+      }
+    });
+
+    // Use DocumentFragment for better DOM performance
+    const fragment = document.createDocumentFragment();
+    let total = 0, present = 0;
+    
+    classes.forEach(c => {
+      const { total: tt, present: pp } = totals.get(c);
+      const absent = tt - pp;
+      total += tt;
+      present += pp;
+      
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>Class ${c}</td><td>${tt}</td><td>${pp}</td><td>${absent}</td>`;
+      fragment.appendChild(tr);
+    });
+    
+    // Single DOM update
+    DOM.dashBody.innerHTML = "";
+    DOM.dashBody.appendChild(fragment);
+
+    // Update summary
+    const absent = total - present;
+    const summaryEl = $("#overallSummary");
+    if (summaryEl) {
+      summaryEl.textContent = `Overall — Total: ${total} | Present: ${present} | Absent: ${absent}`;
+    }
+    
+  } catch (error) {
+    console.error("Error rendering dashboard:", error);
+    if (DOM.dashBody) {
+      DOM.dashBody.innerHTML = '<tr><td colspan="4" class="center" style="color:var(--muted)">Error loading dashboard</td></tr>';
+    }
+  }
+}
+
+/* ===========================
+   History (Recent Dates)
+=========================== */
+function renderHistory(limit = 10){
+  const historyBody = DOM.historyBody || $("#historyBody");
+  if(!historyBody) {
+    Logger.warn("History body element not found");
+    return;
+  }
+  
+  try {
+    historyBody.innerHTML = "";
+
+    const byDate = logRows.reduce((acc, r) => {
+      acc[r.date] = acc[r.date] || { present:0, absent:0, total:0 };
+      if (r.status === "Present") acc[r.date].present++;
+      if (r.status === "Absent") acc[r.date].absent++;
+      acc[r.date].total++;
+      return acc;
+    }, {});
+
+    const dates = Object.keys(byDate).sort((a,b)=> b.localeCompare(a)).slice(0, limit);
+    if (!dates.length){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="4" class="center" style="color:var(--muted)">No history found</td>`;
+      historyBody.appendChild(tr);
+      return;
+    }
+
+    // Use DocumentFragment for better performance
+    const fragment = document.createDocumentFragment();
+    dates.forEach(d=>{
+      const rec = byDate[d];
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${d}</td><td>${rec.present}</td><td>${rec.absent}</td><td>${rec.total}</td>`;
+      fragment.appendChild(tr);
+    });
+    historyBody.appendChild(fragment);
+    
+    Logger.debug(`Rendered history for ${dates.length} dates`);
+  } catch (error) {
+    Logger.error("Error rendering history", { error: error.message });
+    if (historyBody) {
+      historyBody.innerHTML = '<tr><td colspan="4" class="center" style="color:var(--muted)">Error loading history</td></tr>';
+    }
+  }
+}
+
+/* ===========================
+   Table + Filters
+=========================== */
+function getFilters(){ 
+  const filterClass = DOM.filterClass || $("#filterClass");
+  const filterStatus = DOM.filterStatus || $("#filterStatus");
+  const filterDateFrom = DOM.filterDateFrom || $("#filterDateFrom");
+  const filterDateTo = DOM.filterDateTo || $("#filterDateTo");
+  
+  return {
+    cls: filterClass?.value || "", 
+    status: filterStatus?.value || "",
+    from: filterDateFrom?.value || "", 
+    to: filterDateTo?.value || ""
+  };
+}
+
+function passFilters(r, f){
+  if(f.cls && r.class !== f.cls) return false;
+  if(f.status && r.status !== f.status) return false;
+  if(f.from && r.date < f.from) return false;
+  if(f.to && r.date > f.to) return false;
+  return true;
+}
+function renderTable() {
+  if (!DOM.logTableBody) return;
+  
+  try {
+    const noRows = $("#noRows");
+    const f = getFilters();
+    
+    // Optimize: Filter once and cache result
+    const filteredRows = logRows.filter(r => passFilters(r, f));
+    
+    // Show/hide no results row
+    if (noRows) {
+      noRows.style.display = filteredRows.length ? "none" : "table-row";
+    }
+    
+    if (filteredRows.length === 0) {
+      DOM.logTableBody.innerHTML = "";
+      return;
+    }
+    
+    // Use DocumentFragment for better performance
+    const fragment = document.createDocumentFragment();
+    
+    // Pre-define status classes for better performance
+    const statusClasses = {
+      "Present": "chip ok",
+      "Duplicate": "chip warn", 
+      "Absent": "chip warn"
+    };
+    
+    filteredRows.forEach((r, i) => {
+      const tr = document.createElement("tr");
+      const chipClass = statusClasses[r.status] || "chip";
+      
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${r.id}</td>
+        <td>${r.name}</td>
+        <td>${r.class}</td>
+        <td><span class="${chipClass}">${r.status}</span></td>
+        <td>${r.date}</td>
+        <td>${r.time}</td>`;
+      
+      fragment.appendChild(tr);
+    });
+    
+    // Single DOM update
+    DOM.logTableBody.innerHTML = "";
+    DOM.logTableBody.appendChild(fragment);
+    
+  } catch (error) {
+    console.error("Error rendering table:", error);
+    if (DOM.logTableBody) {
+      DOM.logTableBody.innerHTML = '<tr><td colspan="7" class="center" style="color:var(--muted)">Error loading data</td></tr>';
+    }
+  }
+}
+function refreshUI(){ renderDashboard(); renderTable(); renderHistory(); }
+
+/* ===========================
+   Backend notify (email parents) - Enhanced with security
+=========================== */
+async function notifyParentEmail({ id, name, klass, email, when = new Date() }) {
+  try {
+    // Rate limiting check
+    const rateLimitKey = `email_${id}`;
+    if (!Security.rateLimiter.check(rateLimitKey)) {
+      console.warn("Rate limit exceeded for email notifications");
+      return;
+    }
+    
+    // Validate and sanitize inputs
+    const sanitizedId = Security.validateAndSanitizeStudentId(id);
+    if (!sanitizedId) {
+      console.warn("Invalid student ID for email notification:", id);
+      return;
+    }
+    
+    const sanitizedName = Security.sanitizeInput(name);
+    const sanitizedClass = Security.sanitizeInput(klass);
+    const sanitizedEmail = email.trim().toLowerCase();
+    
+    if (!validateEmail(sanitizedEmail)) {
+      console.warn("Invalid email for notification:", email);
+      return;
+    }
+    
+    // Validate timestamp
+    const timestamp = new Date(when);
+    if (isNaN(timestamp.getTime())) {
+      console.warn("Invalid timestamp for email notification");
+      return;
+    }
+    
+    const requestBody = {
+      studentId: sanitizedId,
+      studentName: sanitizedName,
+      parentEmail: sanitizedEmail,
+      class: sanitizedClass,
+      timestamp: timestamp.toISOString()
+    };
+    
+    const res = await fetch(`${API_BASE}/api/send-email`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest" // CSRF protection
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    
+    const data = await res.json();
+    if (!data.ok && !data.dedup) {
+      console.warn("Email not sent:", data);
+    } else {
+      console.log("Email notification sent successfully for:", sanitizedId);
+    }
+    
+  } catch (e) { 
+    console.warn("Notify failed", e);
+    // Reset rate limit on error to allow retry
+    Security.rateLimiter.reset(`email_${id}`);
+  }
+}
+
+/* ===========================
+   Attendance Logic
+=========================== */
+function alreadyMarkedToday(id) {
+  if (!validateStudentId(id)) return false;
+  const t = todayStr();
+  return logRows.some(r => r.id === id && r.date === t && r.status === "Present");
+}
+
+function appendLogEntry(entry) {
+  try {
+    // Validate entry structure
+    if (!entry || typeof entry !== 'object') {
+      throw new Error("Invalid entry object");
+    }
+    
+    const requiredFields = ['id', 'name', 'class', 'status', 'date', 'time'];
+    for (const field of requiredFields) {
+      if (!entry[field] || typeof entry[field] !== 'string') {
+        throw new Error(`Missing or invalid field: ${field}`);
+      }
+    }
+    
+    // Validate student ID format
+    if (!validateStudentId(entry.id)) {
+      throw new Error("Invalid student ID format");
+    }
+    
+    // Validate status
+    const validStatuses = ['Present', 'Absent', 'Duplicate'];
+    if (!validStatuses.includes(entry.status)) {
+      throw new Error(`Invalid status: ${entry.status}`);
+    }
+    
+    // Add timestamp for tracking
+    entry.timestamp = Date.now();
+    entry.id = entry.id.trim().toUpperCase(); // Normalize ID
+    
+    logRows.unshift(entry);
+    saveAttendance(logRows);
+    refreshUI();
+    
+    console.log(`Added attendance entry: ${entry.id} - ${entry.status}`);
+  } catch (error) {
+    console.error("Error appending log entry:", error);
+    showToast(`Failed to record attendance: ${error.message}`, "#ef4444");
+    throw error;
+  }
+}
+
+/* ---- Double-scan gate ---- */
+function setPendingUI(active, type="pending"){
+  try {
+    const scanTile = DOM.scanTile || document.getElementById("scanTile");
+    if(!scanTile) {
+      Logger.warn("Scan tile element not found for pending UI");
+      return;
+    }
+    
+    scanTile.classList.remove("border-pending", "border-ok", "border-warn");
+    
+    if(!active) return;
+    
+    if(type === "pending") scanTile.classList.add("border-pending");
+    else if(type === "ok") scanTile.classList.add("border-ok");
+    else if(type === "warn") scanTile.classList.add("border-warn");
+    
+    Logger.debug(`Set pending UI: ${type}`, { active });
+  } catch (error) {
+    Logger.error("Error setting pending UI", { error: error.message, active, type });
+  }
+}
+function preparePending(code, msgText){
+  try {
+    pendingCode = code;
+    pendingTime = Date.now();
+    setPendingUI(true, "pending");
+    
+    const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+    if (lastScanMsg) {
+      lastScanMsg.innerHTML = `<span style="color:#fb923c; font-weight:800;">${Security.sanitizeHTML(msgText)}</span>`;
+    }
+    
+    showToast("🔄 Scan again to confirm", "#fb923c");
+    Logger.debug("Prepared pending scan", { code, message: msgText });
+  } catch (error) {
+    Logger.error("Error preparing pending scan", { error: error.message, code });
+  }
+}
+function clearPending(){
+  pendingCode = null;
+  pendingTime = 0;
+  setPendingUI(false);
+}
+
+function handleConfirmed(id){
+  const person = studentMap.get(id);
+  const now = new Date();
+  const base = { id, name: person?person.name:"(Unknown)", class: person?person.class:"-", date: todayStr(now), time: now.toLocaleTimeString() };
+
+  if(!person){
+    setPendingUI(true,"warn");
+    const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+    if (lastScanMsg) {
+      lastScanMsg.innerHTML = `<span style="color:#ef4444; font-weight:800;">❌ Unknown QR scanned</span>`;
+    }
+    playBeep(); // guarded
+    speakText("Unknown QR code scanned");
+    clearPending();
+    return;
+  }
+
+  if(alreadyMarkedToday(id)){
+    setPendingUI(true,"ok"); // green as you wanted
+    const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+    if (lastScanMsg) {
+      lastScanMsg.innerHTML = `<span style="color:#16a34a; font-weight:800;">✅ Already Scanned: ${Security.sanitizeHTML(person.name)} (Class ${Security.sanitizeHTML(person.class)})</span>`;
+    }
+    playBeep();
+    speakText(`Already scanned ${person.name}`);
+    clearPending();
+    return;
+  }
+
+  // ✅ Mark Present
+  appendLogEntry({ ...base, status:"Present" });
+  setPendingUI(true,"ok");
+  const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+  if (lastScanMsg) {
+    lastScanMsg.innerHTML = `<span style="color:#34d399; font-weight:800;">✅ Marked Present: ${Security.sanitizeHTML(person.name)} (Class ${Security.sanitizeHTML(person.class)})</span>`;
+  }
+  playBeep();
+  speakText(`${person.name} Present`);
+
+  // 🔔 notify parent
+  notifyParentEmail({ id, name: person.name, klass: person.class, email: person.email, when: now });
+
+  clearPending();
+}
+
+/* Main entry: called on every read (camera or image) */
+function onScan(codeRaw) {
+  try {
+    const code = String(codeRaw || "").trim().toUpperCase();
+    
+    // Enhanced validation
+    if (!code) {
+      console.warn("Empty QR code scanned");
+      return;
+    }
+    
+    if (!validateStudentId(code)) {
+      Logger.warn("Invalid QR code format", { code });
+      setPendingUI(true, "warn");
+      const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+      if (lastScanMsg) {
+        lastScanMsg.innerHTML = `<span style="color:#ef4444; font-weight:800;">❌ Invalid QR Code Format</span>`;
+      }
+      playBeep();
+      speakText("Invalid QR code format");
+      clearPending();
+      return;
+    }
+
+    // Expire old pending
+    if (pendingCode && (Date.now() - pendingTime) > PENDING_WINDOW_MS) {
+      console.log("Pending scan expired");
+      clearPending();
+    }
+
+    // 1st scan → set pending
+    if (!pendingCode) {
+      const person = studentMap.get(code);
+      if (!person) {
+        Logger.warn("Unknown student ID", { code });
+        setPendingUI(true, "warn");
+        const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+        if (lastScanMsg) {
+          lastScanMsg.innerHTML = `<span style="color:#ef4444; font-weight:800;">❌ Unknown Student: ${Security.sanitizeHTML(code)}</span>`;
+        }
+        playBeep();
+        speakText("Unknown student");
+        clearPending();
+        return;
+      }
+      
+      const display = `${person.name} (Class ${person.class})`;
+      preparePending(code, `Scan again to confirm — ${display}`);
+      return;
+    }
+
+    // 2nd scan: must match the pending code
+    if (code === pendingCode) {
+      handleConfirmed(code);
+    } else {
+      // New code replaces pending
+      const person = studentMap.get(code);
+      if (!person) {
+        Logger.warn("Unknown student ID in second scan", { code });
+        setPendingUI(true, "warn");
+        const lastScanMsg = DOM.lastScanMsg || $("#lastScanMsg");
+        if (lastScanMsg) {
+          lastScanMsg.innerHTML = `<span style="color:#ef4444; font-weight:800;">❌ Unknown Student: ${Security.sanitizeHTML(code)}</span>`;
+        }
+        playBeep();
+        speakText("Unknown student");
+        clearPending();
+        return;
+      }
+      
+      const display = `${person.name} (Class ${person.class})`;
+      preparePending(code, `Scan again to confirm — ${display}`);
+    }
+  } catch (error) {
+    console.error("Error in onScan:", error);
+    showToast("Error processing QR code", "#ef4444");
+    clearPending();
+  }
+}
+
+/* ===========================
+   CSV Export (filtered) - Enhanced with loading states
+=========================== */
+function downloadCSV() {
+  try {
+    LoadingStates.show("Preparing CSV export...");
+    
+    // Use setTimeout to allow UI to update
+    setTimeout(() => {
+      try {
+        const f = getFilters();
+        const rows = logRows.filter(r => passFilters(r, f));
+        
+        if (rows.length === 0) {
+          LoadingStates.hide();
+          showToast("No data to export", "#fb923c");
+          return;
+        }
+        
+        LoadingStates.updateProgress(25, "Processing data...");
+        
+        const header = ["#", "ID", "Name", "Class", "Status", "Date", "Time"];
+        
+        LoadingStates.updateProgress(50, "Generating CSV...");
+        
+        // Enhanced CSV generation with proper escaping
+        const csvRows = rows.map((r, i) => {
+          const row = [i + 1, r.id, r.name, r.class, r.status, r.date, r.time];
+          return row.map(v => {
+            const str = String(v || '');
+            // Escape quotes and wrap in quotes if contains comma, quote, or newline
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+              return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+          }).join(',');
+        });
+        
+        LoadingStates.updateProgress(75, "Creating download...");
+        
+        const csv = [header.join(','), ...csvRows].join('\n');
+        
+        // Add BOM for proper UTF-8 encoding in Excel
+        const bom = '\uFEFF';
+        const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+        
+        LoadingStates.updateProgress(90, "Downloading file...");
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendance_${todayStr()}_${rows.length}_records.csv`;
+        a.style.display = 'none';
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        LoadingStates.updateProgress(100, "Export completed!");
+        
+        setTimeout(() => {
+          LoadingStates.hide();
+          showToast(`✅ Exported ${rows.length} records successfully`, "#22c55e");
+        }, 500);
+        
+        console.log(`CSV export completed: ${rows.length} records`);
+        
+      } catch (error) {
+        LoadingStates.hide();
+        console.error("Error exporting CSV:", error);
+        showToast("❌ Failed to export CSV", "#ef4444");
+      }
+    }, 100);
+    
+  } catch (error) {
+    LoadingStates.hide();
+    console.error("Error in downloadCSV:", error);
+    showToast("❌ Export failed", "#ef4444");
+  }
+}
+
+/* ===========================
+   Clear Attendance (Today / All)
+=========================== */
+function clearToday(){
+  const t=todayStr();
+  logRows = logRows.filter(r=>r.date!==t);
+  saveAttendance(logRows);
+  refreshUI();
+  showToast("Cleared today’s attendance");
+}
+
+function clearAll(){
+  if(!confirm("This will permanently clear ALL attendance logs. Continue?")) return;
+  logRows = [];
+  saveAttendance(logRows);
+  refreshUI();
+  showToast("All attendance cleared");
+}
+
+/* ===========================
+   FINALIZE DAY + DOWNLOAD FULL LIST - Enhanced with loading states
+=========================== */
+async function finalizeDayAndDownload() {
+  try {
+    LoadingStates.showProgress("Finalizing attendance for today...", 0);
+    
+    const t = todayStr();
+    
+    LoadingStates.updateProgress(10, "Processing student records...");
+    
+    // Ensure one row per student for today
+    studentArr.forEach(s => {
+      const any = logRows.find(r => r.id === s.id && r.date === t);
+      if (!any) {
+        logRows.unshift({ 
+          id: s.id, 
+          name: s.name, 
+          class: s.class, 
+          status: "Absent", 
+          date: t, 
+          time: "-" 
+        });
+      }
+    });
+
+    LoadingStates.updateProgress(30, "Saving attendance data...");
+    
+    saveAttendance(logRows);
+    refreshUI();
+    
+    LoadingStates.updateProgress(50, "Generating final report...");
+    
+    // Full CSV (all students for today)
+    const header = ["#", "ID", "Name", "Class", "Status", "Date", "Time"];
+    const rowsForToday = studentArr.map((s, idx) => {
+      const row = logRows.find(r => r.id === s.id && r.date === t);
+      return [
+        idx + 1, 
+        s.id, 
+        s.name, 
+        s.class, 
+        row?.status || "Absent", 
+        row?.date || t, 
+        row?.time || "-"
+      ];
+    });
+    
+    LoadingStates.updateProgress(70, "Creating CSV file...");
+    
+    const csv = [header.join(",")]
+      .concat(rowsForToday.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `attendance_FINAL_${t}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    LoadingStates.updateProgress(85, "Sending absent notifications...");
+
+    // 🔔 Absent alerts (batch)
+    try {
+      const absentRecords = studentArr
+        .filter(s => {
+          const row = logRows.find(r => r.id === s.id && r.date === t);
+          return !row || row.status !== "Present";
+        })
+        .map(s => ({
+          studentId: s.id,
+          studentName: s.name,
+          parentEmail: s.email,
+          dateISO: t
+        }));
+
+      if (absentRecords.length) {
+        const res = await fetch(`${API_BASE}/api/send-absent-emails`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+          },
+          body: JSON.stringify({ records: absentRecords })
+        });
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        const data = await res.json();
+        console.log("Absent alerts result:", data);
+        
+        LoadingStates.updateProgress(100, "Finalization completed!");
+        
+        setTimeout(() => {
+          LoadingStates.hide();
+          showToast(`✅ Day finalized! Absent alerts sent: ${data.sent || 0}/${absentRecords.length}`, "#22c55e");
+        }, 500);
+        
+      } else {
+        LoadingStates.updateProgress(100, "Finalization completed!");
+        
+        setTimeout(() => {
+          LoadingStates.hide();
+          showToast("✅ Day finalized! No absent notifications needed.", "#22c55e");
+        }, 500);
+        
+        console.log("No absent alerts to send.");
+      }
+    } catch (e) {
+      console.warn("Absent alerts failed:", e);
+      LoadingStates.updateProgress(100, "Finalization completed with warnings");
+      
+      setTimeout(() => {
+        LoadingStates.hide();
+        showToast("⚠️ Day finalized but absent notifications failed", "#fb923c");
+      }, 500);
+    }
+    
+  } catch (error) {
+    LoadingStates.hide();
+    console.error("Error in finalizeDayAndDownload:", error);
+    showToast("❌ Failed to finalize day", "#ef4444");
+  }
+}
+
+/* ===========================
+   ZXing Scanner (camera)
+=========================== */
+let codeReader=null; let currentDeviceId=null;
+async function listCameras(){
+  try {
+    const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+    const cameraSelect = DOM.cameraSelect || $("#cameraSelect");
+    
+    if(!cameraSelect) {
+      Logger.warn("Camera select element not found");
+      return;
+    }
+    
+    cameraSelect.innerHTML = "";
+    
+    if (devices.length === 0) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "No cameras found";
+      cameraSelect.appendChild(opt);
+      Logger.warn("No camera devices found");
+      return;
+    }
+    
+    devices.forEach((d, i) => { 
+      const opt = document.createElement("option"); 
+      opt.value = d.deviceId; 
+      opt.textContent = d.label || `Camera ${i + 1}`; 
+      cameraSelect.appendChild(opt); 
+    });
+    
+    if(devices[0]) {
+      cameraSelect.value = devices[0].deviceId;
+    }
+    
+    Logger.info(`Found ${devices.length} camera devices`);
+  } catch (error) {
+    Logger.error("Error listing cameras", { error: error.message });
+    const cameraSelect = DOM.cameraSelect || $("#cameraSelect");
+    if (cameraSelect) {
+      cameraSelect.innerHTML = '<option value="">Camera error</option>';
+    }
+  }
+}
+async function startScanner(){
+  try {
+    if(codeReader){ 
+      await stopScanner(); 
+    }
+
+    // Hints: prefer QR + try harder
+    const hints = new Map();
+    if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    }
+    codeReader = new ZXing.BrowserMultiFormatReader(hints);
+
+    const cameraSelect = DOM.cameraSelect || $("#cameraSelect");
+    currentDeviceId = cameraSelect?.value || undefined;
+    
+    const startBtn = DOM.startBtn || $("#startBtn");
+    const stopBtn = DOM.stopBtn || $("#stopBtn");
+    
+    if (startBtn) startBtn.disabled = true;
+    if (stopBtn) stopBtn.disabled = false;
+    
+    LoadingStates.show("Starting camera...");
+    
+    await codeReader.decodeFromVideoDevice(currentDeviceId, "video", (res, err) => {
+      if(res && res.text){ 
+        onScan(res.text); 
+      }
+      if(err && err.name !== 'NotFoundException') {
+        Logger.warn("Scanner decode error", { error: err.message });
+      }
+    });
+    
+    setScanActive(true);
+    LoadingStates.hide();
+    showToast("✅ Camera started successfully", "#22c55e");
+    Logger.info("Camera scanner started", { deviceId: currentDeviceId });
+    
+  } catch(e) {
+    Logger.error("Failed to start camera", { error: e.message });
+    LoadingStates.hide();
+    showToast("❌ Could not start camera", "#ef4444");
+    
+    const startBtn = DOM.startBtn || $("#startBtn");
+    const stopBtn = DOM.stopBtn || $("#stopBtn");
+    
+    if (startBtn) startBtn.disabled = false;
+    if (stopBtn) stopBtn.disabled = true;
+    setScanActive(false);
+  }
+}
+async function stopScanner(){
+  try {
+    if(codeReader){ 
+      await codeReader.reset(); 
+      codeReader = null; 
+    }
+    
+    const startBtn = DOM.startBtn || $("#startBtn");
+    const stopBtn = DOM.stopBtn || $("#stopBtn");
+    
+    if (startBtn) startBtn.disabled = false;
+    if (stopBtn) stopBtn.disabled = true;
+    
+    setScanActive(false);
+    showToast("📷 Camera stopped", "#6b7280");
+    Logger.info("Camera scanner stopped");
+    
+  } catch (error) {
+    Logger.error("Error stopping scanner", { error: error.message });
+    showToast("❌ Error stopping camera", "#ef4444");
+  }
+}
+
+/* ===========================
+   Scan-from-Image (fixed hints)
+=========================== */
+const fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  try {
+    const hints = new Map();
+    if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    }
+    // ✅ pass hints by constructor (no defaultOptions)
+    const qrReader = new ZXing.BrowserQRCodeReader(hints);
+    const result = await qrReader.decodeFromImageUrl(url);
+    if (result && result.text) { onScan(result.text); showToast("Scanned from image"); }
+    else { showToast("No QR found in image", "#b91c1c"); }
+  } catch (err) {
+    console.error(err); showToast("Could not read QR from image", "#b91c1c");
+  } finally {
+    fileInput.value = ""; URL.revokeObjectURL(url);
+  }
+});
+
+/* ===========================
+   Filters toggle & UI helpers
+=========================== */
+document.getElementById("toggleFilters").addEventListener("click", ()=>{
+  const p = document.getElementById("filtersPanel");
+  p.style.display = p.style.display === "block" ? "none" : "block";
+});
+
+function setScanActive(active){
+  try {
+    const video = document.getElementById("video");
+    const scanTile = DOM.scanTile || document.getElementById("scanTile");
+    
+    if(!video || !scanTile) {
+      Logger.warn("Video or scan tile element not found");
+      return;
+    }
+    
+    if(active){ 
+      scanTile.classList.add("scan-active"); 
+      video.style.display = "block"; 
+      Logger.debug("Scanner UI activated");
+    } else { 
+      scanTile.classList.remove("scan-active"); 
+      video.style.display = "none"; 
+      Logger.debug("Scanner UI deactivated");
+    }
+  } catch (error) {
+    Logger.error("Error setting scan active state", { error: error.message, active });
+  }
+}
+
+/* ===========================
+   Debug Panel
+=========================== */
+function showDebugPanel() {
+  try {
+    // Remove existing debug panel
+    const existingPanel = document.getElementById('debug-panel');
+    if (existingPanel) {
+      existingPanel.remove();
+      return;
+    }
+    
+    const logs = Logger.getLogs();
+    const errorLogs = Logger.getLogs('ERROR');
+    const warnLogs = Logger.getLogs('WARN');
+    const infoLogs = Logger.getLogs('INFO');
+    const debugLogs = Logger.getLogs('DEBUG');
+    
+    const panel = document.createElement('div');
+    panel.id = 'debug-panel';
+    panel.innerHTML = `
+      <div class="debug-content">
+        <div class="debug-header">
+          <h3>Debug Panel</h3>
+          <button id="close-debug" class="btn-sm">×</button>
+        </div>
+        <div class="debug-tabs">
+          <button class="debug-tab active" data-tab="logs">Logs (${logs.length})</button>
+          <button class="debug-tab" data-tab="performance">Performance</button>
+          <button class="debug-tab" data-tab="storage">Storage</button>
+          <button class="debug-tab" data-tab="system">System</button>
+        </div>
+        <div class="debug-body">
+          <div id="debug-logs" class="debug-tab-content active">
+            <div class="debug-actions">
+              <button id="export-logs" class="btn-sm">Export Logs</button>
+              <button id="clear-logs" class="btn-sm">Clear Logs</button>
+              <select id="log-level-filter">
+                <option value="">All Levels</option>
+                <option value="ERROR">Errors (${errorLogs.length})</option>
+                <option value="WARN">Warnings (${warnLogs.length})</option>
+                <option value="INFO">Info (${infoLogs.length})</option>
+                <option value="DEBUG">Debug (${debugLogs.length})</option>
+              </select>
+            </div>
+            <div class="debug-logs-list">
+              ${logs.slice(-20).map(log => `
+                <div class="debug-log-entry ${log.level.toLowerCase()}">
+                  <span class="log-time">${new Date(log.timestamp).toLocaleTimeString()}</span>
+                  <span class="log-level">${log.level}</span>
+                  <span class="log-message">${log.message}</span>
+                  ${log.data ? `<div class="log-data">${JSON.stringify(log.data, null, 2)}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div id="debug-performance" class="debug-tab-content">
+            <h4>Performance Metrics</h4>
+            <div class="debug-metrics">
+              <div class="metric">
+                <label>Total Records:</label>
+                <span>${logRows.length}</span>
+              </div>
+              <div class="metric">
+                <label>Students:</label>
+                <span>${studentArr.length}</span>
+              </div>
+              <div class="metric">
+                <label>Classes:</label>
+                <span>${classes.length}</span>
+              </div>
+              <div class="metric">
+                <label>Memory Usage:</label>
+                <span>${(performance.memory ? (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2) : 'N/A')} MB</span>
+              </div>
+            </div>
+          </div>
+          <div id="debug-storage" class="debug-tab-content">
+            <h4>Storage Information</h4>
+            <div class="debug-metrics">
+              <div class="metric">
+                <label>LocalStorage Usage:</label>
+                <span>${(JSON.stringify(localStorage).length / 1024).toFixed(2)} KB</span>
+              </div>
+              <div class="metric">
+                <label>Attendance Records:</label>
+                <span>${logRows.length}</span>
+              </div>
+              <div class="metric">
+                <label>Backup Available:</label>
+                <span>${localStorage.getItem(BACKUP_KEY) ? 'Yes' : 'No'}</span>
+              </div>
+            </div>
+          </div>
+          <div id="debug-system" class="debug-tab-content">
+            <h4>System Information</h4>
+            <div class="debug-metrics">
+              <div class="metric">
+                <label>User Agent:</label>
+                <span>${navigator.userAgent}</span>
+              </div>
+              <div class="metric">
+                <label>Screen Resolution:</label>
+                <span>${screen.width}x${screen.height}</span>
+              </div>
+              <div class="metric">
+                <label>Viewport:</label>
+                <span>${window.innerWidth}x${window.innerHeight}</span>
+              </div>
+              <div class="metric">
+                <label>Online Status:</label>
+                <span>${navigator.onLine ? 'Online' : 'Offline'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    panel.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      backdrop-filter: blur(4px);
+    `;
+    
+    // Add debug panel styles
+    if (!document.querySelector('#debug-styles')) {
+      const style = document.createElement('style');
+      style.id = 'debug-styles';
+      style.textContent = `
+        .debug-content {
+          background: white;
+          border-radius: 12px;
+          width: 90%;
+          max-width: 800px;
+          max-height: 80vh;
+          overflow: hidden;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .debug-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px;
+          border-bottom: 1px solid #e5e7eb;
+          background: #f9fafb;
+        }
+        .debug-header h3 {
+          margin: 0;
+          color: #111827;
+        }
+        .debug-tabs {
+          display: flex;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .debug-tab {
+          padding: 12px 20px;
+          border: none;
+          background: none;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+          font-weight: 600;
+        }
+        .debug-tab.active {
+          border-bottom-color: #3b5bff;
+          color: #3b5bff;
+        }
+        .debug-body {
+          padding: 20px;
+          max-height: 400px;
+          overflow-y: auto;
+        }
+        .debug-tab-content {
+          display: none;
+        }
+        .debug-tab-content.active {
+          display: block;
+        }
+        .debug-actions {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 15px;
+          align-items: center;
+        }
+        .debug-logs-list {
+          max-height: 300px;
+          overflow-y: auto;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+        }
+        .debug-log-entry {
+          padding: 8px 12px;
+          border-bottom: 1px solid #f3f4f6;
+          font-family: monospace;
+          font-size: 12px;
+        }
+        .debug-log-entry.error {
+          background: #fef2f2;
+          border-left: 3px solid #ef4444;
+        }
+        .debug-log-entry.warn {
+          background: #fffbeb;
+          border-left: 3px solid #f59e0b;
+        }
+        .debug-log-entry.info {
+          background: #eff6ff;
+          border-left: 3px solid #3b82f6;
+        }
+        .debug-log-entry.debug {
+          background: #f0fdf4;
+          border-left: 3px solid #22c55e;
+        }
+        .log-time {
+          color: #6b7280;
+          margin-right: 10px;
+        }
+        .log-level {
+          font-weight: bold;
+          margin-right: 10px;
+          min-width: 50px;
+          display: inline-block;
+        }
+        .log-data {
+          margin-top: 5px;
+          padding: 5px;
+          background: rgba(0,0,0,0.05);
+          border-radius: 3px;
+          white-space: pre-wrap;
+        }
+        .debug-metrics {
+          display: grid;
+          gap: 10px;
+        }
+        .metric {
+          display: flex;
+          justify-content: space-between;
+          padding: 8px 0;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .metric label {
+          font-weight: 600;
+          color: #374151;
+        }
+        .metric span {
+          color: #6b7280;
+          font-family: monospace;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(panel);
+    
+    // Add event listeners for debug panel
+    document.getElementById('close-debug').addEventListener('click', () => panel.remove());
+    document.getElementById('export-logs').addEventListener('click', Logger.exportLogs);
+    document.getElementById('clear-logs').addEventListener('click', () => {
+      Logger.clearLogs();
+      showToast("Logs cleared", "#22c55e");
+      panel.remove();
+      showDebugPanel(); // Refresh panel
+    });
+    
+    // Tab switching
+    document.querySelectorAll('.debug-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.debug-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.debug-tab-content').forEach(c => c.classList.remove('active'));
+        
+        tab.classList.add('active');
+        document.getElementById(`debug-${tab.dataset.tab}`).classList.add('active');
+      });
+    });
+    
+    // Log level filtering
+    document.getElementById('log-level-filter').addEventListener('change', (e) => {
+      const level = e.target.value;
+      const entries = document.querySelectorAll('.debug-log-entry');
+      entries.forEach(entry => {
+        if (!level || entry.classList.contains(level.toLowerCase())) {
+          entry.style.display = 'block';
+        } else {
+          entry.style.display = 'none';
+        }
+      });
+    });
+    
+  } catch (error) {
+    Logger.error("Error showing debug panel", { error: error.message });
+    showToast("Failed to open debug panel", "#ef4444");
+  }
+}
+
+/* ===========================
+   Event Listeners - Optimized
+=========================== */
+function setupEventListeners() {
+  try {
+    // Button event listeners using cached DOM references
+    if (DOM.startBtn) DOM.startBtn.addEventListener("click", startScanner);
+    if (DOM.stopBtn) DOM.stopBtn.addEventListener("click", stopScanner);
+    
+    const downloadCsvBtn = $("#downloadCsv");
+    if (downloadCsvBtn) downloadCsvBtn.addEventListener("click", downloadCSV);
+    
+    const clearTodayBtn = $("#clearToday");
+    if (clearTodayBtn) clearTodayBtn.addEventListener("click", clearToday);
+    
+    const clearAllBtn = $("#clearAll");
+    if (clearAllBtn) clearAllBtn.addEventListener("click", clearAll);
+    
+    const finalizeBtn = $("#finalizeAndDownload");
+    if (finalizeBtn) finalizeBtn.addEventListener("click", finalizeDayAndDownload);
+    
+    const debugBtn = $("#debugPanel");
+    if (debugBtn) debugBtn.addEventListener("click", showDebugPanel);
+
+    // Filter event listeners with debouncing for better performance
+    const debouncedRenderTable = debounce(renderTable, 300);
+    
+    if (DOM.filterClass) DOM.filterClass.addEventListener("input", debouncedRenderTable);
+    if (DOM.filterStatus) DOM.filterStatus.addEventListener("input", debouncedRenderTable);
+    if (DOM.filterDateFrom) DOM.filterDateFrom.addEventListener("input", debouncedRenderTable);
+    if (DOM.filterDateTo) DOM.filterDateTo.addEventListener("input", debouncedRenderTable);
+
+    // Camera hot-switch
+    if (DOM.cameraSelect) {
+      DOM.cameraSelect.addEventListener("change", () => {
+        if (codeReader) {
+          startScanner();
+        }
+      });
+    }
+    
+    Logger.info("Event listeners setup completed");
+    
+  } catch (error) {
+    Logger.error("Error setting up event listeners", { error: error.message });
+  }
+}
+
+/* ===========================
+   Auto Reset Daily
+=========================== */
+function autoResetDaily(){
+  const today = todayStr();
+  const last = localStorage.getItem("lastDate");
+  if(last !== today){
+    logRows = logRows.filter(r => r.date !== today);
+    saveAttendance(logRows);
+    localStorage.setItem("lastDate", today);
+  }
+}
+
+/* ===========================
+   Network Monitoring
+=========================== */
+function updateNetworkStatus() {
+  try {
+    const networkStatus = document.getElementById('networkStatus');
+    const networkStatusText = document.getElementById('networkStatusText');
+    
+    if (!networkStatus || !networkStatusText) return;
+    
+    const isOnline = navigator.onLine;
+    
+    if (isOnline) {
+      networkStatus.className = 'status-indicator online';
+      networkStatusText.textContent = 'Online';
+    } else {
+      networkStatus.className = 'status-indicator offline';
+      networkStatusText.textContent = 'Offline';
+    }
+    
+    Logger.debug(`Network status: ${isOnline ? 'Online' : 'Offline'}`);
+  } catch (error) {
+    Logger.error("Error updating network status", { error: error.message });
+  }
+}
+
+// Network event listeners
+window.addEventListener('online', () => {
+  updateNetworkStatus();
+  showToast("🟢 Back online", "#22c55e");
+  Logger.info("Network connection restored");
+});
+
+window.addEventListener('offline', () => {
+  updateNetworkStatus();
+  showToast("🔴 Connection lost - Working offline", "#f59e0b");
+  Logger.warn("Network connection lost");
+});
+
+/* ===========================
+   Enhanced Error Handling
+=========================== */
+window.addEventListener('error', (event) => {
+  Logger.error("Global error caught", {
+    message: event.message,
+    filename: event.filename,
+    line: event.lineno,
+    column: event.colno,
+    stack: event.error?.stack
+  });
+  
+  showToast("❌ An error occurred", "#ef4444");
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  Logger.error("Unhandled promise rejection", {
+    reason: event.reason,
+    promise: event.promise
+  });
+  
+  showToast("❌ Operation failed", "#ef4444");
+  event.preventDefault();
+});
+
+/* ===========================
+   Init - Enhanced initialization
+=========================== */
+(async function init() {
+  try {
+    Logger.info("Starting application initialization");
+    
+    // Initialize DOM references first
+    initializeDOM();
+    
+    // Setup event listeners
+    setupEventListeners();
+    
+    // Initialize network monitoring
+    updateNetworkStatus();
+    
+    // Populate class filter
+    populateClassFilter();
+    
+    // Auto reset daily data
+    autoResetDaily();
+    
+    // Initial UI render
+    refreshUI();
+    
+    // Initialize camera list
+    try {
+      await listCameras();
+    } catch (e) {
+      Logger.warn("Camera initialization failed", { error: e.message });
+      showToast("⚠️ Camera not available", "#f59e0b");
+    }
+    
+    // Cleanup old backups
+    cleanupBackups();
+    
+    // Performance monitoring
+    if (performance.mark) {
+      performance.mark('app-init-complete');
+    }
+    
+    Logger.info("Application initialized successfully");
+    showToast("✅ Application ready", "#22c55e");
+    
+  } catch (error) {
+    Logger.error("Initialization failed", { error: error.message, stack: error.stack });
+    showToast("❌ Application initialization failed", "#ef4444");
+    
+    // Try to show a basic error message even if toast fails
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ef4444;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      z-index: 10000;
+    `;
+    errorDiv.textContent = 'Application failed to initialize. Please refresh the page.';
+    document.body.appendChild(errorDiv);
+  }
+})();
+</script>
+</body>
+</html>
