@@ -18,11 +18,10 @@ require("dotenv").config();
 const app = express();
 app.use(express.static(path.join(__dirname, "public")));
 
-
 /* ========== Config (.env) ========== */
 const PORT        = process.env.PORT || 3000;
-const SMTP_USER   = process.env.SMTP_USER || "saamarthyaacademy24@gmail.com"; // your Gmail
-const SMTP_PASS   = process.env.SMTP_PASS || "hbrc ljci pppl hzcr"; // Gmail App Password  
+const SMTP_USER   = process.env.SMTP_USER || "saamarthyaacademy24@gmail.com";
+const SMTP_PASS   = process.env.SMTP_PASS || "hbrcljcippphlhzcr"; // set in .env (remove spaces if it's a Gmail App Password)
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const DRY_RUN     = String(process.env.DRY_RUN || "false").toLowerCase() === "true";
 
@@ -50,31 +49,35 @@ if (!DRY_RUN) {
   if (!SMTP_USER || !SMTP_PASS) {
     console.log("⚠️  Set SMTP_USER and SMTP_PASS in .env (or use DRY_RUN=true).");
   } else {
+    // allow toggling secure via env, default to true (port 465)
+    const secure = typeof process.env.SMTP_SECURE !== "undefined"
+      ? (String(process.env.SMTP_SECURE).toLowerCase() === "true")
+      : true;
+
     transporter = nodemailer.createTransport({
-      service: 'gmail',  // Use Gmail service instead of manual config
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: Number(process.env.SMTP_PORT || (secure ? 465 : 587)),
+      secure, // true for 465, false for 587 (STARTTLS)
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+      tls: { rejectUnauthorized: false }
     });
-    
-    // Enhanced verification
+
+    // Verify & (optionally) send a test email
     transporter.verify()
       .then(() => {
         console.log("✅ SMTP connected successfully");
-        // Send a test email
-        return transporter.sendMail({
-          from: `"Saamarthya Academy" <${SMTP_USER}>`,
-          to: SMTP_USER, // Send to yourself
-          subject: "Email System Test",
-          text: "This is a test email to verify the email system is working."
-        });
+        if (!DRY_RUN) {
+          return transporter.sendMail({
+            from: `"Saamarthya Academy" <${SMTP_USER}>`,
+            to: SMTP_USER,
+            subject: "Email System Test",
+            text: "This is a test email to verify the email system is working."
+          })
+          .then(info => console.log("✅ Test email sent:", info.messageId || info.response))
+          .catch(err => console.error("⚠️ Test email failed:", err?.message || err));
+        }
       })
-      .then(info => console.log("✅ Test email sent:", info.messageId))
-      .catch(err => console.error("⚠️ SMTP error:", err?.message || err));
+      .catch(err => console.error("⚠️ SMTP verify failed:", err?.message || err));
   }
 }
 
@@ -301,7 +304,7 @@ app.post("/api/send-absent-emails", async (req, res) => {
           results.push({ studentId, ok: false, message: e?.message || "send failed" });
         }
       }
-      // (Optional) modest delay to avoid SMTP throttling:
+      // modest delay to avoid SMTP throttling:
       await new Promise(r => setTimeout(r, 150));
     }
 
@@ -318,18 +321,3 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`   DRY_RUN=${DRY_RUN ? "true" : "false"} (set in .env)`);
 });
-
-transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT || 465),
-  secure: (process.env.SMTP_SECURE === "true"), // true for 465
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  },
-  tls: { rejectUnauthorized: false }
-});
-// Verify transporter configuration
-transporter.verify()
-  .then(() => console.log("✅ SMTP transporter verified"))
-  .catch(err => console.error("⚠️ SMTP transporter error:", err?.message || err));
