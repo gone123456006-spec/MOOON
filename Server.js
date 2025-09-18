@@ -51,14 +51,30 @@ if (!DRY_RUN) {
     console.log("⚠️  Set SMTP_USER and SMTP_PASS in .env (or use DRY_RUN=true).");
   } else {
     transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
+      service: 'gmail',  // Use Gmail service instead of manual config
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
     });
+    
+    // Enhanced verification
     transporter.verify()
-      .then(() => console.log("✅ SMTP ready"))
-      .catch(err => console.log("⚠️ SMTP verify failed:", err?.message || err));
+      .then(() => {
+        console.log("✅ SMTP connected successfully");
+        // Send a test email
+        return transporter.sendMail({
+          from: `"Saamarthya Academy" <${SMTP_USER}>`,
+          to: SMTP_USER, // Send to yourself
+          subject: "Email System Test",
+          text: "This is a test email to verify the email system is working."
+        });
+      })
+      .then(info => console.log("✅ Test email sent:", info.messageId))
+      .catch(err => console.error("⚠️ SMTP error:", err?.message || err));
   }
 }
 
