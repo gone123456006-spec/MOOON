@@ -318,3 +318,18 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`   DRY_RUN=${DRY_RUN ? "true" : "false"} (set in .env)`);
 });
+
+transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: Number(process.env.SMTP_PORT || 465),
+  secure: (process.env.SMTP_SECURE === "true"), // true for 465
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  },
+  tls: { rejectUnauthorized: false }
+});
+// Verify transporter configuration
+transporter.verify()
+  .then(() => console.log("✅ SMTP transporter verified"))
+  .catch(err => console.error("⚠️ SMTP transporter error:", err?.message || err));
